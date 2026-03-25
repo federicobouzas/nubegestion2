@@ -1,6 +1,6 @@
 import { createClient } from './supabase'
 import { TENANT_ID } from './constants'
-import type { FacturaVentaForm, ItemFacturaVenta, PercepcionFactura } from '@/types/ventas'
+import type { FacturaVentaForm } from '@/types/ventas'
 
 export async function getFacturasVenta(search?: string) {
   const supabase = createClient()
@@ -12,7 +12,13 @@ export async function getFacturasVenta(search?: string) {
   if (search) q = q.ilike('codigo', `%${search}%`)
   const { data, error } = await q
   if (error) throw error
-  return data
+
+  // Calcular saldo real para cada factura
+  const result = await Promise.all((data || []).map(async (fv: any) => {
+    const { data: saldo } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: fv.id })
+    return { ...fv, saldo_pendiente: saldo ?? fv.total }
+  }))
+  return result
 }
 
 export async function getFacturaVenta(id: string) {
@@ -24,7 +30,9 @@ export async function getFacturaVenta(id: string) {
     .eq('tenant_id', TENANT_ID)
     .single()
   if (error) throw error
-  return data
+  // Calcular saldo real
+  const { data: saldo } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: id })
+  return { ...data, saldo_pendiente: saldo ?? data.total }
 }
 
 export async function getItemsFacturaVenta(factura_id: string) {
@@ -53,17 +61,12 @@ export async function getPercepcionesFacturaVenta(factura_id: string) {
 export async function createFacturaVenta(form: FacturaVentaForm) {
   const supabase = createClient()
 
-  // Generar código FV
   const { data: codigoData, error: codigoError } = await supabase
     .rpc('generar_codigo', { p_tenant_id: TENANT_ID, p_tipo: 'FV' })
   if (codigoError) throw codigoError
 
-  // Calcular totales
   const subtotal = form.items.reduce((acc, i) => acc + i.subtotal, 0)
-  const impuestos = form.items.reduce((acc, i) => {
-    const base = i.subtotal * (1 - i.descuento_porcentaje / 100)
-    return acc + base * (i.iva_porcentaje / 100)
-  }, 0)
+  const impuestos = form.items.reduce((acc, i) => acc + i.subtotal * (i.iva_porcentaje / 100), 0)
   const percepciones = form.percepciones.reduce((acc, p) => acc + p.importe, 0)
   const total = subtotal + impuestos + percepciones
 
@@ -81,11 +84,8 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
       periodo_hasta: form.periodo_hasta || null,
       condicion_venta: form.condicion_venta,
       notas: form.notas || null,
-      subtotal,
-      impuestos,
-      percepciones,
-      total,
-      saldo_pendiente: total,
+      subtotal, impuestos, percepciones, total,
+      saldo_pendiente: total, // se mantiene como referencia inicial
     })
     .select()
     .single()
@@ -93,7 +93,6 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
 
   // Validar stock y bajar
   if (form.items.length > 0) {
-    // Validar stock suficiente
     for (const item of form.items) {
       if (!item.item_id) continue
       const { data: prod } = await supabase
@@ -104,6 +103,7 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
         .single()
       if (!prod) continue
       if (prod.stock_actual < item.cantidad) {
+        await supabase.from('facturas_venta').delete().eq('id', factura.id)
         throw new Error(`Stock insuficiente para "${prod.nombre}": disponible ${prod.stock_actual}, requerido ${item.cantidad}.`)
       }
     }
@@ -113,7 +113,6 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
     )
     if (itemsError) throw itemsError
 
-    // Bajar stock
     for (const item of form.items) {
       if (!item.item_id) continue
       const { data: prod } = await supabase
@@ -131,14 +130,12 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
     }
   }
 
-  // Percepciones
   if (form.percepciones.length > 0) {
-    const { error: percError } = await supabase.from('percepciones_factura').insert(
+    await supabase.from('percepciones_factura').insert(
       form.percepciones.filter(p => p.importe > 0).map(p => ({
         ...p, factura_id: factura.id, tipo_factura: 'venta', tenant_id: TENANT_ID
       }))
     )
-    if (percError) throw percError
   }
 
   return factura
@@ -154,7 +151,9 @@ export async function grabarCAE(id: string, cae: string, cae_fecha_vencimiento: 
     .select()
     .single()
   if (error) throw error
-  return data
+  // Recalcular saldo
+  const { data: saldo } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: id })
+  return { ...data, saldo_pendiente: saldo ?? data.total }
 }
 
 export async function anularFacturaVenta(id: string) {
@@ -184,7 +183,7 @@ export async function anularFacturaVenta(id: string) {
   }
   const { error } = await supabase
     .from('facturas_venta')
-    .update({ saldo_pendiente: 0, notas: '[ANULADA]' })
+    .update({ notas: '[ANULADA]' })
     .eq('id', id)
     .eq('tenant_id', TENANT_ID)
   if (error) throw error

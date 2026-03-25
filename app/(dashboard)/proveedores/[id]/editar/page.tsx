@@ -6,6 +6,24 @@ import ContactoForm, { ContactoFormData } from '@/components/shared/ContactoForm
 import { getProveedor, updateProveedor } from '@/lib/proveedores'
 import type { Proveedor } from '@/types/proveedores'
 
+function proveedorToInitial(p: Proveedor): Partial<ContactoFormData> {
+  return {
+    nombre_razon_social: p.nombre_razon_social,
+    cuit: p.cuit ?? '',
+    condicion_iva: p.condicion_iva,
+    domicilio_fiscal: p.domicilio_fiscal ?? '',
+    direccion: p.direccion ?? '',
+    localidad: p.localidad ?? '',
+    provincia: p.provincia ?? '',
+    codigo_postal: p.codigo_postal ?? '',
+    telefono: p.telefono ?? '',
+    email: p.email ?? '',
+    web: p.web ?? '',
+    tipo_factura: p.tipo_factura,
+    estado: p.estado,
+  }
+}
+
 export default function EditarProveedorPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -19,7 +37,7 @@ export default function EditarProveedorPage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar breadcrumb={[{ label: 'Proveedores', href: '/proveedores' }, { label: c.nombre_razon_social, href: `/proveedores/${id}` }, { label: 'Editar' }]} />
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-4 flex-shrink-0"><h1 className="font-display text-[20px] font-extrabold tracking-tight">Editar Proveedor</h1></div>
-      <div className="flex-1 overflow-y-auto"><ContactoForm initialData={c} onSubmit={handleSubmit} submitLabel="Guardar cambios" /></div>
+      <div className="flex-1 overflow-y-auto"><ContactoForm initialData={proveedorToInitial(c)} onSubmit={handleSubmit} submitLabel="Guardar cambios" /></div>
     </div>
   )
 }
