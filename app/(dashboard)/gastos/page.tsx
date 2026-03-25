@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Plus, Eye } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
+import Pagination from '@/components/shared/Pagination'
 import { getGastos, formatMonto } from '@/lib/gastos'
 import type { Gasto } from '@/types/gastos'
 

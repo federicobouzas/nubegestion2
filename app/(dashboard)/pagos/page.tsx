@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Eye } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
+import Pagination from '@/components/shared/Pagination'
 import { getRecibosPago, formatMonto } from '@/lib/pagos'
 import type { ReciboPago } from '@/types/pagos'
 

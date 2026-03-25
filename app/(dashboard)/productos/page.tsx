@@ -1,53 +1,81 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { Eye, Pencil, Trash2 } from 'lucide-react'
-import ListPageShell from '@/components/shared/ListPageShell'
+import { Plus, Pencil } from 'lucide-react'
+import Topbar from '@/components/shared/Topbar'
+import ListHeader from '@/components/shared/ListHeader'
 import Badge from '@/components/shared/Badge'
-import { getProductos, deleteProducto } from '@/lib/productos'
-import type { Producto } from '@/types/productos'
-
-const fmt = (n: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+import { usePaginatedList } from '@/hooks/usePaginatedList'
+import { TENANT_ID } from '@/lib/constants'
+import { pluralize } from '@/lib/utils'
 
 export default function ProductosPage() {
-  const [rows, setRows] = useState<Producto[]>([])
-  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const load = useCallback(async () => { setLoading(true); try { setRows((await getProductos(search || undefined)) || []) } finally { setLoading(false) } }, [search])
-  useEffect(() => { load() }, [load])
-  async function handleDelete(id: string) { if (!confirm('¿Eliminar este producto?')) return; await deleteProducto(id); setRows(p => p.filter(r => r.id !== id)) }
+  const [searchInput, setSearchInput] = useState('')
+
+  const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
+    table: 'productos',
+    select: '*',
+    tenant_id: TENANT_ID,
+    orderBy: 'nombre',
+    orderAsc: true,
+    search: { column: 'nombre', value: search },
+  })
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    setSearch(searchInput)
+    setPage(0)
+  }
+
   return (
-    <ListPageShell breadcrumb={[{ label: 'Negocio' }, { label: 'Productos' }]} title="Productos" count={rows.length} newHref="/productos/nuevo" newLabel="Nuevo Producto" search={search} onSearch={setSearch} loading={loading}>
-      {rows.length === 0
-        ? <div className="bg-white border border-[#E5E4E0] rounded-xl p-10 text-center text-[#A8A49D] text-sm">No hay productos todavía.</div>
-        : (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <Topbar
+        breadcrumb={[{ label: 'Negocio' }, { label: 'Productos' }]}
+        actions={
+          <Link href="/productos/nuevo" className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-2 rounded-[9px] bg-[#F2682E] text-white shadow-[0_3px_12px_rgba(242,104,46,0.30)] hover:bg-[#C94E18] transition-colors">
+            <Plus size={13} strokeWidth={2.2} /> Nuevo Producto
+          </Link>
+        }
+      />
+      <ListHeader
+        title="Productos"
+        searchPlaceholder="Buscar producto..."
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        onSearchSubmit={handleSearch}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
+        onPage={setPage}
+        onPageSize={setPageSize}
+      />
+      <div className="flex-1 overflow-y-auto p-6">
+        {loading ? (
+          <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
+        ) : (
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-[#E5E4E0] bg-[#F9F9F8]">
-                  {['Código','Nombre','Precio Venta','Precio Compra','IVA','Stock','Estado',''].map((h,i) => (
+                  {['Nombre','IVA','Stock','Estado',''].map((h,i) => (
                     <th key={i} className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-2.5 text-left font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {rows.map(p => (
+                {data.length === 0 ? (
+                  <tr><td colSpan={5} className="px-4 py-10 text-center text-[#A8A49D] text-sm">No hay productos.</td></tr>
+                ) : data.map((p: any) => (
                   <tr key={p.id} className="border-b border-[#F1F0EE] last:border-0 hover:bg-[#FEF0EA] transition-colors group">
-                    <td className="px-4 py-3 font-mono text-[11px] text-[#6B6762]">{p.codigo || '—'}</td>
-                    <td className="px-4 py-3 font-semibold text-[12.5px] text-[#18181B]">{p.nombre}</td>
-                    <td className="px-4 py-3 font-mono text-[12px] text-[#18181B] font-bold">{fmt(p.precio_venta)}</td>
-                    <td className="px-4 py-3 font-mono text-[12px] text-[#6B6762]">{fmt(p.precio_compra)}</td>
-                    <td className="px-4 py-3 font-mono text-[11.5px] text-[#3F3F46]">{p.iva}%</td>
-                    <td className="px-4 py-3">
-                      <span className={`font-mono text-[11.5px] font-bold ${p.stock_actual <= p.stock_minimo ? 'text-[#EE3232]' : 'text-[#18181B]'}`}>{p.stock_actual}</span>
-                      {p.stock_actual <= p.stock_minimo && <span className="ml-1.5 text-[10px] bg-[#FEE8E8] text-[#7F1D1D] px-1.5 py-0.5 rounded-full font-semibold">bajo</span>}
-                    </td>
-                    <td className="px-4 py-3"><Badge variant={p.estado === 'activo' ? 'success' : 'gray'} label={p.estado === 'activo' ? 'Activo' : 'Inactivo'} /></td>
+                    <td className="px-4 py-3 text-[13px] font-semibold text-[#18181B]">{p.nombre}</td>
+                    <td className="px-4 py-3 font-mono text-[12px] text-[#6B6762]">{p.iva}%</td>
+                    <td className="px-4 py-3 font-mono text-[12px] text-[#6B6762]">{pluralize(p.stock_actual, p.unidad_medida || 'unidad')}</td>
+                    <td className="px-4 py-3"><Badge variant={p.estado === 'activo' ? 'success' : 'default'}>{p.estado === 'activo' ? 'Activo' : 'Inactivo'}</Badge></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link href={`/productos/${p.id}`} className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#2B445A] hover:text-[#2B445A] transition-colors"><Eye size={13} strokeWidth={2} /></Link>
-                        <Link href={`/productos/${p.id}/editar`} className="w-7 h-7 rounded-[6px] border border-[#FBCFBA] bg-[#FEF0EA] flex items-center justify-center text-[#F2682E] hover:bg-[#F2682E] hover:text-white transition-colors"><Pencil size={13} strokeWidth={2} /></Link>
-                        <button onClick={() => handleDelete(p.id)} className="w-7 h-7 rounded-[6px] border border-[#FECACA] bg-[#FEE8E8] flex items-center justify-center text-[#EE3232] hover:bg-[#EE3232] hover:text-white transition-colors"><Trash2 size={13} strokeWidth={2} /></button>
+                        <Link href={`/productos/${p.id}/editar`} className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#2B445A] hover:text-[#2B445A] transition-colors"><Pencil size={13} strokeWidth={2} /></Link>
                       </div>
                     </td>
                   </tr>
@@ -56,6 +84,7 @@ export default function ProductosPage() {
             </table>
           </div>
         )}
-    </ListPageShell>
+      </div>
+    </div>
   )
 }

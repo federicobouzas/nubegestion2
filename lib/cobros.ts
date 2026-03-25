@@ -12,7 +12,11 @@ export async function getRecibosCobro(search?: string) {
   if (search) q = q.ilike('codigo', `%${search}%`)
   const { data, error } = await q
   if (error) throw error
-  return data
+  const result = await Promise.all((data || []).map(async (r: any) => {
+    const { data: total } = await supabase.rpc('get_total_recibo_cobro', { p_recibo_id: r.id })
+    return { ...r, total: total ?? 0 }
+  }))
+  return result
 }
 
 export async function getReciboCobro(id: string) {
@@ -24,7 +28,8 @@ export async function getReciboCobro(id: string) {
     .eq('tenant_id', TENANT_ID)
     .single()
   if (error) throw error
-  return data
+  const { data: total } = await supabase.rpc('get_total_recibo_cobro', { p_recibo_id: id })
+  return { ...data, total: total ?? 0 }
 }
 
 export async function getMetodosCobro(recibo_id: string) {
@@ -41,7 +46,7 @@ export async function getFacturasCobro(recibo_id: string) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('recibo_cobro_facturas')
-    .select('*, facturas_venta(numero, codigo, total)')
+    .select('*, facturas_venta(numero, codigo)')
     .eq('recibo_cobro_id', recibo_id)
   if (error) throw error
   return data
@@ -129,7 +134,6 @@ export async function createReciboCobro(form: ReciboCobroForm) {
       codigo: codigoData,
       numero: form.numero || null,
       fecha: form.fecha,
-      total: totalFacturas,
       notas: form.notas || null,
     })
     .select()

@@ -12,7 +12,18 @@ export async function getFacturasCompra(search?: string) {
   if (search) q = q.ilike('codigo', `%${search}%`)
   const { data, error } = await q
   if (error) throw error
-  return data
+
+  const result = await Promise.all((data || []).map(async (fc: any) => {
+    const [{ data: total }, { data: saldo }, { data: subtotal }, { data: iva }, { data: percepciones }] = await Promise.all([
+      supabase.rpc('get_total_factura_compra_con_percepciones', { p_factura_id: fc.id }),
+      supabase.rpc('get_saldo_factura_compra', { p_factura_id: fc.id }),
+      supabase.rpc('get_subtotal_factura_compra', { p_factura_id: fc.id }),
+      supabase.rpc('get_iva_factura_compra', { p_factura_id: fc.id }),
+      supabase.rpc('get_percepciones_factura_compra', { p_factura_id: fc.id }),
+    ])
+    return { ...fc, total: total ?? 0, saldo_pendiente: saldo ?? 0, subtotal: subtotal ?? 0, impuestos: iva ?? 0, percepciones: percepciones ?? 0 }
+  }))
+  return result
 }
 
 export async function getFacturaCompra(id: string) {
@@ -24,7 +35,15 @@ export async function getFacturaCompra(id: string) {
     .eq('tenant_id', TENANT_ID)
     .single()
   if (error) throw error
-  return data
+
+  const [{ data: total }, { data: saldo }, { data: subtotal }, { data: iva }, { data: percepciones }] = await Promise.all([
+    supabase.rpc('get_total_factura_compra_con_percepciones', { p_factura_id: id }),
+    supabase.rpc('get_saldo_factura_compra', { p_factura_id: id }),
+    supabase.rpc('get_subtotal_factura_compra', { p_factura_id: id }),
+    supabase.rpc('get_iva_factura_compra', { p_factura_id: id }),
+    supabase.rpc('get_percepciones_factura_compra', { p_factura_id: id }),
+  ])
+  return { ...data, total: total ?? 0, saldo_pendiente: saldo ?? 0, subtotal: subtotal ?? 0, impuestos: iva ?? 0, percepciones: percepciones ?? 0 }
 }
 
 export async function getItemsFacturaCompra(factura_id: string) {
@@ -57,11 +76,6 @@ export async function createFacturaCompra(form: FacturaCompraForm) {
     .rpc('generar_codigo', { p_tenant_id: TENANT_ID, p_tipo: 'FC' })
   if (codigoError) throw codigoError
 
-  const subtotal = form.items.reduce((acc, i) => acc + i.subtotal, 0)
-  const impuestos = form.items.reduce((acc, i) => acc + i.subtotal * (i.iva_porcentaje / 100), 0)
-  const percepciones = form.percepciones.reduce((acc, p) => acc + p.importe, 0)
-  const total = subtotal + impuestos + percepciones
-
   const { data: factura, error } = await supabase
     .from('facturas_compra')
     .insert({
@@ -76,8 +90,6 @@ export async function createFacturaCompra(form: FacturaCompraForm) {
       periodo_hasta: form.periodo_hasta || null,
       condicion_compra: form.condicion_compra,
       notas: form.notas || null,
-      subtotal, impuestos, percepciones, total,
-      saldo_pendiente: total,
     })
     .select()
     .single()
@@ -89,7 +101,6 @@ export async function createFacturaCompra(form: FacturaCompraForm) {
       .insert(form.items.map(i => ({ ...i, factura_compra_id: factura.id, tenant_id: TENANT_ID })))
     if (itemsError) throw itemsError
 
-    // Subir stock y actualizar precio_compra
     for (const item of form.items) {
       if (!item.item_id) continue
       const { data: prod } = await supabase
@@ -112,9 +123,9 @@ export async function createFacturaCompra(form: FacturaCompraForm) {
 
   if (form.percepciones.length > 0) {
     await supabase.from('percepciones_factura').insert(
-      form.percepciones
-        .filter(p => p.importe > 0)
-        .map(p => ({ ...p, factura_id: factura.id, tipo_factura: 'compra', tenant_id: TENANT_ID }))
+      form.percepciones.filter(p => p.importe > 0).map(p => ({
+        ...p, factura_id: factura.id, tipo_factura: 'compra', tenant_id: TENANT_ID
+      }))
     )
   }
 
@@ -149,7 +160,7 @@ export async function anularFacturaCompra(id: string) {
 
   await supabase
     .from('facturas_compra')
-    .update({ saldo_pendiente: 0, notas: '[ANULADA]' })
+    .update({ notas: '[ANULADA]' })
     .eq('id', id)
     .eq('tenant_id', TENANT_ID)
 }

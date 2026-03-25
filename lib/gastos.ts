@@ -78,7 +78,11 @@ export async function getGastos() {
     .eq('tenant_id', TENANT_ID)
     .order('created_at', { ascending: false })
   if (error) throw error
-  return data
+  const result = await Promise.all((data || []).map(async (g: any) => {
+    const { data: total } = await supabase.rpc('get_total_gasto', { p_gasto_id: g.id })
+    return { ...g, total: total ?? 0 }
+  }))
+  return result
 }
 
 export async function getGasto(id: string) {
@@ -90,7 +94,8 @@ export async function getGasto(id: string) {
     .eq('tenant_id', TENANT_ID)
     .single()
   if (error) throw error
-  return data
+  const { data: total } = await supabase.rpc('get_total_gasto', { p_gasto_id: id })
+  return { ...data, total: total ?? 0 }
 }
 
 export async function getMetodosGasto(gasto_id: string) {
@@ -126,8 +131,6 @@ export async function createGasto(form: GastoForm) {
     .rpc('generar_codigo', { p_tenant_id: TENANT_ID, p_tipo: 'GA' })
   if (codErr) throw codErr
 
-  const total = form.metodos.reduce((a, m) => a + Number(m.monto), 0)
-
   // Validar saldo de cuentas
   for (const m of form.metodos) {
     const { data: saldo } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: m.cuenta_id })
@@ -146,7 +149,6 @@ export async function createGasto(form: GastoForm) {
       descripcion: form.descripcion || null,
       numero_factura: form.numero_factura || null,
       fecha_pago: form.fecha_pago,
-      total,
       notas: form.notas || null,
     })
     .select().single()

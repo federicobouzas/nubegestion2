@@ -13,10 +13,15 @@ export async function getFacturasVenta(search?: string) {
   const { data, error } = await q
   if (error) throw error
 
-  // Calcular saldo real para cada factura
   const result = await Promise.all((data || []).map(async (fv: any) => {
-    const { data: saldo } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: fv.id })
-    return { ...fv, saldo_pendiente: saldo ?? fv.total }
+    const [{ data: total }, { data: saldo }, { data: subtotal }, { data: iva }, { data: percepciones }] = await Promise.all([
+      supabase.rpc('get_total_factura_venta_con_percepciones', { p_factura_id: fv.id }),
+      supabase.rpc('get_saldo_factura_venta', { p_factura_id: fv.id }),
+      supabase.rpc('get_subtotal_factura_venta', { p_factura_id: fv.id }),
+      supabase.rpc('get_iva_factura_venta', { p_factura_id: fv.id }),
+      supabase.rpc('get_percepciones_factura_venta', { p_factura_id: fv.id }),
+    ])
+    return { ...fv, total: total ?? 0, saldo_pendiente: saldo ?? 0, subtotal: subtotal ?? 0, impuestos: iva ?? 0, percepciones: percepciones ?? 0 }
   }))
   return result
 }
@@ -30,9 +35,15 @@ export async function getFacturaVenta(id: string) {
     .eq('tenant_id', TENANT_ID)
     .single()
   if (error) throw error
-  // Calcular saldo real
-  const { data: saldo } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: id })
-  return { ...data, saldo_pendiente: saldo ?? data.total }
+
+  const [{ data: total }, { data: saldo }, { data: subtotal }, { data: iva }, { data: percepciones }] = await Promise.all([
+    supabase.rpc('get_total_factura_venta_con_percepciones', { p_factura_id: id }),
+    supabase.rpc('get_saldo_factura_venta', { p_factura_id: id }),
+    supabase.rpc('get_subtotal_factura_venta', { p_factura_id: id }),
+    supabase.rpc('get_iva_factura_venta', { p_factura_id: id }),
+    supabase.rpc('get_percepciones_factura_venta', { p_factura_id: id }),
+  ])
+  return { ...data, total: total ?? 0, saldo_pendiente: saldo ?? 0, subtotal: subtotal ?? 0, impuestos: iva ?? 0, percepciones: percepciones ?? 0 }
 }
 
 export async function getItemsFacturaVenta(factura_id: string) {
@@ -65,11 +76,6 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
     .rpc('generar_codigo', { p_tenant_id: TENANT_ID, p_tipo: 'FV' })
   if (codigoError) throw codigoError
 
-  const subtotal = form.items.reduce((acc, i) => acc + i.subtotal, 0)
-  const impuestos = form.items.reduce((acc, i) => acc + i.subtotal * (i.iva_porcentaje / 100), 0)
-  const percepciones = form.percepciones.reduce((acc, p) => acc + p.importe, 0)
-  const total = subtotal + impuestos + percepciones
-
   const { data: factura, error } = await supabase
     .from('facturas_venta')
     .insert({
@@ -84,14 +90,11 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
       periodo_hasta: form.periodo_hasta || null,
       condicion_venta: form.condicion_venta,
       notas: form.notas || null,
-      subtotal, impuestos, percepciones, total,
-      saldo_pendiente: total, // se mantiene como referencia inicial
     })
     .select()
     .single()
   if (error) throw error
 
-  // Validar stock y bajar
   if (form.items.length > 0) {
     for (const item of form.items) {
       if (!item.item_id) continue
@@ -151,14 +154,13 @@ export async function grabarCAE(id: string, cae: string, cae_fecha_vencimiento: 
     .select()
     .single()
   if (error) throw error
-  // Recalcular saldo
   const { data: saldo } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: id })
-  return { ...data, saldo_pendiente: saldo ?? data.total }
+  const { data: total } = await supabase.rpc('get_total_factura_venta_con_percepciones', { p_factura_id: id })
+  return { ...data, saldo_pendiente: saldo ?? 0, total: total ?? 0 }
 }
 
 export async function anularFacturaVenta(id: string) {
   const supabase = createClient()
-  // Revertir stock
   const { data: items } = await supabase
     .from('items_factura_venta')
     .select('*')

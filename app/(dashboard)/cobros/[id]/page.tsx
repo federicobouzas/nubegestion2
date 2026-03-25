@@ -183,10 +183,6 @@ export default function VerCobroPage() {
                 <span className="font-mono font-bold text-[#18181B] w-28 text-right">{formatMonto(totalRetenciones)}</span>
               </div>
             )}
-            <div className="flex gap-8 text-[14px] font-bold border-t border-[#E5E4E0] pt-2 mt-1">
-              <span>Total cobrado</span>
-              <span className="font-mono text-[#F2682E] w-28 text-right text-[16px]">{formatMonto(r.total)}</span>
-            </div>
           </div>
         </div>
 

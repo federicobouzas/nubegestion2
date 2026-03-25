@@ -30,7 +30,7 @@ const nav = [
     { label: 'Fabricación', href: '/fabricacion', icon: Wrench },
   ]},
   { section: 'Tesorería', items: [
-    { label: 'Saldos', href: '/tesoreria', icon: Landmark },
+    { label: 'Saldos', href: '/tesoreria/saldos', icon: Landmark },
     { label: 'Cuentas', href: '/tesoreria/cuentas', icon: Wallet },
     { label: 'Movimientos', href: '/movimientos', icon: History },
   ]},

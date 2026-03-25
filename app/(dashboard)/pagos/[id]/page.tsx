@@ -113,10 +113,6 @@ export default function VerPagoPage() {
               ))}
             </tbody>
           </table>
-          <div className="border-t border-[#E5E4E0] p-4 flex flex-col items-end gap-1.5">
-            {totalRetenciones > 0 && <div className="flex gap-8 text-[12px] text-[#6B6762]"><span>Retenciones</span><span className="font-mono font-bold text-[#18181B] w-28 text-right">{formatMonto(totalRetenciones)}</span></div>}
-            <div className="flex gap-8 text-[14px] font-bold border-t border-[#E5E4E0] pt-2 mt-1"><span>Total pagado</span><span className="font-mono text-[#F2682E] w-28 text-right text-[16px]">{formatMonto(r.total)}</span></div>
-          </div>
         </div>
 
         {retenciones.length > 0 && (

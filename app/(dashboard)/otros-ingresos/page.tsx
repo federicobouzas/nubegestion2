@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
+import Pagination from '@/components/shared/Pagination'
 import { getOtrosIngresos, deleteOtroIngreso, formatMonto } from '@/lib/otros-ingresos'
 import type { OtroIngreso } from '@/types/otros-ingresos'
 
