@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Settings, Ticket, Cloud, Wallet } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Settings, Ticket, Cloud, Wallet, Tag, FolderOpen } from 'lucide-react'
 
 const nav = [
   { section: 'Principal', items: [
@@ -35,6 +35,8 @@ const nav = [
     { label: 'Movimientos', href: '/movimientos', icon: History },
   ]},
   { section: 'Sistema', items: [
+    { href: '/listas-precios', label: 'Listas de Precios', icon: Tag },
+    { href: '/categorias-gastos', label: 'Categorías de Gastos', icon: FolderOpen },
     { label: 'Configuración', href: '/configuracion', icon: Settings },
     { label: 'Soporte', href: '/soporte', icon: Ticket },
   ]},
