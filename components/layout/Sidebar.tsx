@@ -2,6 +2,9 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Settings, Ticket, Cloud, Wallet, Tag, FolderOpen } from 'lucide-react'
+import { LogOut } from 'lucide-react'
+import { signOut } from '@/lib/auth'
+import { useRouter } from 'next/navigation'
 
 const nav = [
   { section: 'Principal', items: [
@@ -43,6 +46,7 @@ const nav = [
 ]
 
 export default function Sidebar() {
+  const router = useRouter()
   const pathname = usePathname()
   return (
     <aside className="w-[228px] bg-[#2B445A] flex flex-col flex-shrink-0 h-full overflow-y-auto">
@@ -79,7 +83,11 @@ export default function Sidebar() {
           <div className="text-[11.5px] font-semibold text-white/50 truncate">Admin Demo</div>
           <div className="font-mono text-[8.5px] text-white/20">Admin</div>
         </div>
-        <Settings size={13} className="text-white/20 flex-shrink-0" />
+        <button
+          onClick={async () => { await signOut(); router.push('/login'); router.refresh() }}
+          className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#A8A49D] hover:text-white hover:bg-white/10 transition-colors">
+            <LogOut size={14} strokeWidth={2} />
+        </button>
       </div>
     </aside>
   )

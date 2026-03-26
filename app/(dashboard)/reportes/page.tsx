@@ -15,15 +15,10 @@ function formatMonto(n: number) {
 }
 
 const TIPO_COLORS: Record<string, string> = {
-  'Empleados': '#F2682E',
-  'Impuestos': '#2CBAF2',
-  'Marketing': '#FDBC16',
-  'Oficina': '#4EBB7F',
-  'Servicios Profesionales': '#2B445A',
-  'Otro': '#A8A49D',
+  'Empleados': '#F2682E', 'Impuestos': '#2CBAF2', 'Marketing': '#FDBC16',
+  'Oficina': '#4EBB7F', 'Servicios Profesionales': '#2B445A', 'Otro': '#A8A49D',
 }
-const CAT_COLORS = ['#F2682E','#FF8C5A','#FFA87A','#FFB890','#2CBAF2','#5CCEF5','#8DDEF8','#4EBB7F','#7DCCA0','#FDBC16','#FDD050','#2B445A','#4A6B84','#EE3232','#F55F5F']
-
+const CAT_COLORS = ['#F2682E','#FF8C5A','#FFA87A','#2CBAF2','#5CCEF5','#4EBB7F','#7DCCA0','#FDBC16','#FDD050','#2B445A','#4A6B84','#EE3232']
 const tooltipStyle = {
   contentStyle: { background: '#fff', border: '1px solid #E5E4E0', borderRadius: 8, fontSize: 12 },
   labelStyle: { fontWeight: 600, color: '#18181B' },
@@ -39,6 +34,22 @@ function SectionCard({ title, children, right }: { title: string; children: Reac
       <div className="p-4">{children}</div>
     </div>
   )
+}
+
+// Obtener fecha base (la más reciente con datos en la BD)
+async function getFechaBase(supabase: any): Promise<Date> {
+  const results = await Promise.all([
+    supabase.from('recibos_cobro').select('fecha').eq('tenant_id', TENANT_ID).order('fecha', { ascending: false }).limit(1),
+    supabase.from('recibos_pago').select('fecha').eq('tenant_id', TENANT_ID).order('fecha', { ascending: false }).limit(1),
+    supabase.from('gastos').select('fecha_pago').eq('tenant_id', TENANT_ID).order('fecha_pago', { ascending: false }).limit(1),
+  ])
+  const fechas = [
+    results[0].data?.[0]?.fecha,
+    results[1].data?.[0]?.fecha,
+    results[2].data?.[0]?.fecha_pago,
+  ].filter(Boolean).map(f => new Date(f))
+  if (fechas.length === 0) return new Date()
+  return new Date(Math.max(...fechas.map(f => f.getTime())))
 }
 
 export default function ReportesPage() {
@@ -57,21 +68,13 @@ export default function ReportesPage() {
   const [opcionesMeses, setOpcionesMeses] = useState<{ val: string; label: string }[]>([])
 
   useEffect(() => {
-    // Cargar opciones de meses desde la BD
-    async function initMeses() {
+    async function init() {
       const supabase = createClient()
-      const { data } = await supabase
-        .from('gastos')
-        .select('fecha_pago')
-        .eq('tenant_id', TENANT_ID)
-        .order('fecha_pago', { ascending: false })
-        .limit(1)
+      const base = await getFechaBase(supabase)
 
-      // Generar opciones desde la fecha más reciente con datos hasta hoy
-      const latest = data?.[0]?.fecha_pago ? new Date(data[0].fecha_pago) : new Date()
+      // Opciones de meses desde base hacia atrás 24 meses
       const opts: { val: string; label: string }[] = []
-      const cursor = new Date(latest.getFullYear(), latest.getMonth(), 1)
-      // Ir hacia atrás 24 meses desde el más reciente
+      const cursor = new Date(base.getFullYear(), base.getMonth(), 1)
       for (let i = 0; i < 24; i++) {
         const val = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`
         const label = cursor.toLocaleString('es-AR', { month: 'long', year: 'numeric' })
@@ -80,24 +83,22 @@ export default function ReportesPage() {
       }
       setOpcionesMeses(opts)
       setMesReporte(opts[0]?.val || '')
+
+      loadSaldoSemana(supabase, base)
+      loadFacturasMeses(supabase, base)
+      loadFlujoMeses(supabase, base)
     }
-    initMeses()
-    loadSaldoSemana()
-    loadFacturasMeses()
-    loadFlujoMeses()
+    init()
   }, [])
 
   useEffect(() => {
     if (mesReporte) loadDistribucionGastos()
   }, [mesReporte])
 
-  async function loadSaldoSemana() {
+  async function loadSaldoSemana(supabase: any, base: Date) {
     setLoadingSemana(true)
-    const supabase = createClient()
+    // Mostrar los últimos 7 días desde la fecha base
     const { data: cuentas } = await supabase.from('cuentas').select('id').eq('tenant_id', TENANT_ID).eq('activo', true)
-    // Saldo actual es el mismo para todos los días (no tenemos historial diario)
-    // Mostramos saldo actual replicado por 7 días como aproximación
-    // Para un sistema real necesitaríamos snapshots diarios
     let saldoActual = 0
     await Promise.all((cuentas || []).map(async (c: any) => {
       const { data: s } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: c.id })
@@ -105,7 +106,7 @@ export default function ReportesPage() {
     }))
     const dias = []
     for (let i = 6; i >= 0; i--) {
-      const d = new Date()
+      const d = new Date(base)
       d.setDate(d.getDate() - i)
       dias.push({ fecha: `${d.getDate()}/${d.getMonth() + 1}`, saldo: saldoActual })
     }
@@ -113,37 +114,35 @@ export default function ReportesPage() {
     setLoadingSemana(false)
   }
 
-  async function loadFacturasMeses() {
+  async function loadFacturasMeses(supabase: any, base: Date) {
     setLoadingFacturas(true)
-    const supabase = createClient()
-    // Vencidos + mes actual + 2 meses futuros = 3 "columnas"
-    const puntos = [
-      { label: 'Vencidos', vencidos: true },
-      { label: new Date().toLocaleString('es-AR', { month: 'short' }), offset: 0 },
-      { label: new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleString('es-AR', { month: 'short' }), offset: 1 },
-      { label: new Date(new Date().setMonth(new Date().getMonth() + 2)).toLocaleString('es-AR', { month: 'short' }), offset: 2 },
-    ]
+    // Vencidos (antes del mes base) + mes base + mes base-1 + mes base-2
+    const puntos = []
 
-    const hoy = new Date().toISOString().split('T')[0]
+    // Vencidos: antes del primer día del mes base
+    const inicioBase = new Date(base.getFullYear(), base.getMonth(), 1)
+    puntos.push({ label: 'Vencidos', inicio: null, fin: new Date(inicioBase.getTime() - 1).toISOString().split('T')[0] })
+
+    // 3 meses desde base hacia atrás
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1)
+      const inicio = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
+      const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
+      puntos.push({ label: d.toLocaleString('es-AR', { month: 'short', year: '2-digit' }), inicio, fin })
+    }
+
     const resultado = []
     let saldoAcum = 0
-
     for (const punto of puntos) {
-      let ventasQ, comprasQ
-
-      if (punto.vencidos) {
-        ventasQ = supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).lt('fecha_vencimiento', hoy).or('notas.is.null,notas.neq.[ANULADA]')
-        comprasQ = supabase.from('facturas_compra').select('id').eq('tenant_id', TENANT_ID).lt('fecha_vencimiento', hoy).or('notas.is.null,notas.neq.[ANULADA]')
+      let fvsQ, fcsQ
+      if (!punto.inicio) {
+        fvsQ = supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).lte('fecha_vencimiento', punto.fin).or('notas.is.null,notas.neq.[ANULADA]')
+        fcsQ = supabase.from('facturas_compra').select('id').eq('tenant_id', TENANT_ID).lte('fecha_vencimiento', punto.fin).or('notas.is.null,notas.neq.[ANULADA]')
       } else {
-        const d = new Date()
-        d.setMonth(d.getMonth() + (punto.offset || 0))
-        const inicio = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
-        const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
-        ventasQ = supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).gte('fecha_vencimiento', inicio).lte('fecha_vencimiento', fin).or('notas.is.null,notas.neq.[ANULADA]')
-        comprasQ = supabase.from('facturas_compra').select('id').eq('tenant_id', TENANT_ID).gte('fecha_vencimiento', inicio).lte('fecha_vencimiento', fin).or('notas.is.null,notas.neq.[ANULADA]')
+        fvsQ = supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).gte('fecha_vencimiento', punto.inicio).lte('fecha_vencimiento', punto.fin).or('notas.is.null,notas.neq.[ANULADA]')
+        fcsQ = supabase.from('facturas_compra').select('id').eq('tenant_id', TENANT_ID).gte('fecha_vencimiento', punto.inicio).lte('fecha_vencimiento', punto.fin).or('notas.is.null,notas.neq.[ANULADA]')
       }
-
-      const [{ data: fvs }, { data: fcs }] = await Promise.all([ventasQ, comprasQ])
+      const [{ data: fvs }, { data: fcs }] = await Promise.all([fvsQ, fcsQ])
       let ventas = 0, compras = 0
       await Promise.all([
         ...(fvs || []).map(async (f: any) => { const { data: s } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: f.id }); ventas += Number(s ?? 0) }),
@@ -156,14 +155,13 @@ export default function ReportesPage() {
     setLoadingFacturas(false)
   }
 
-  async function loadFlujoMeses() {
+  async function loadFlujoMeses(supabase: any, base: Date) {
     setLoadingFlujo(true)
-    const supabase = createClient()
     const meses = []
     let saldoAcum = 0
+    // 6 meses desde base hacia atrás
     for (let i = 5; i >= 0; i--) {
-      const d = new Date()
-      d.setMonth(d.getMonth() - i)
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1)
       const inicio = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
       const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
       const label = d.toLocaleString('es-AR', { month: 'short', year: '2-digit' })
@@ -204,7 +202,6 @@ export default function ReportesPage() {
       .lte('fecha_pago', fin)
       .or('notas.is.null,notas.neq.[ANULADO]')
 
-    // Agrupar por tipo (anillo interno) y categoría (anillo externo)
     const byTipo: Record<string, number> = {}
     const byCat: Record<string, { tipo: string; nombre: string; total: number }> = {}
     let total = 0
@@ -221,10 +218,8 @@ export default function ReportesPage() {
       total += monto
     }))
 
-    const tiposArr = Object.entries(byTipo).map(([nombre, total]) => ({ nombre, total })).sort((a, b) => b.total - a.total)
-    const catsArr = Object.values(byCat).sort((a, b) => b.total - a.total)
-    setDistribucionTipos(tiposArr)
-    setDistribucionCats(catsArr)
+    setDistribucionTipos(Object.entries(byTipo).map(([nombre, total]) => ({ nombre, total })).sort((a, b) => b.total - a.total))
+    setDistribucionCats(Object.values(byCat).sort((a, b) => b.total - a.total))
     setTotalGastosMes(total)
     setLoadingGastos(false)
   }
@@ -234,7 +229,6 @@ export default function ReportesPage() {
       <Topbar breadcrumb={[{ label: 'Reportes' }]} />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
 
-        {/* Fila 1 */}
         <div className="grid grid-cols-2 gap-4">
           <SectionCard title="Saldo de Tesorería — Última semana">
             {loadingSemana ? <div className="h-[200px] flex items-center justify-center text-[#A8A49D] text-sm">Cargando...</div> : (
@@ -272,7 +266,6 @@ export default function ReportesPage() {
           </SectionCard>
         </div>
 
-        {/* Fila 2 */}
         <div className="grid grid-cols-2 gap-4">
           <SectionCard title="Ingresos y Egresos de Fondos — Últimos 6 meses">
             {loadingFlujo ? <div className="h-[240px] flex items-center justify-center text-[#A8A49D] text-sm">Cargando...</div> : (
@@ -284,9 +277,9 @@ export default function ReportesPage() {
                     <YAxis tickFormatter={formatM} tick={{ fontSize: 11, fill: '#A8A49D' }} width={70} />
                     <Tooltip formatter={(v: any) => formatMonto(v)} {...tooltipStyle} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="cobros" name="Cobros" stackId="ing" fill="#4EBB7F" radius={[0,0,0,0]} />
+                    <Bar dataKey="cobros" name="Cobros" stackId="ing" fill="#4EBB7F" />
                     <Bar dataKey="otrosIngresos" name="Otros Ingresos" stackId="ing" fill="#2CBAF2" radius={[3,3,0,0]} />
-                    <Bar dataKey="pagos" name="Pagos" stackId="egr" fill="#EE3232" radius={[0,0,0,0]} />
+                    <Bar dataKey="pagos" name="Pagos" stackId="egr" fill="#EE3232" />
                     <Bar dataKey="gastos" name="Gastos" stackId="egr" fill="#F2682E" radius={[3,3,0,0]} />
                     <Line type="monotone" dataKey="saldo" stroke="#2B445A" strokeWidth={2.5} dot={{ r: 3 }} name="Saldo acum." />
                   </ComposedChart>
@@ -300,11 +293,7 @@ export default function ReportesPage() {
             right={
               <div className="flex items-center gap-3">
                 <span className="text-[11px] text-[#A8A49D]">Total: <strong className="text-[#18181B]">{formatMonto(totalGastosMes)}</strong></span>
-                <select
-                  value={mesReporte}
-                  onChange={e => setMesReporte(e.target.value)}
-                  className="h-7 text-[11px] font-semibold border border-[#E5E4E0] rounded-[6px] px-2 bg-white text-[#18181B] focus:outline-none focus:border-[#F2682E]"
-                >
+                <select value={mesReporte} onChange={e => setMesReporte(e.target.value)} className="h-7 text-[11px] font-semibold border border-[#E5E4E0] rounded-[6px] px-2 bg-white text-[#18181B] focus:outline-none focus:border-[#F2682E]">
                   {opcionesMeses.map(o => <option key={o.val} value={o.val}>{o.label}</option>)}
                 </select>
               </div>
@@ -316,17 +305,11 @@ export default function ReportesPage() {
                 <div style={{ width: 200, flexShrink: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      {/* Anillo interno: tipos */}
                       <Pie data={distribucionTipos} dataKey="total" nameKey="nombre" cx="50%" cy="50%" outerRadius={60} innerRadius={30}>
-                        {distribucionTipos.map((d, i) => (
-                          <Cell key={i} fill={TIPO_COLORS[d.nombre] || CAT_COLORS[i % CAT_COLORS.length]} />
-                        ))}
+                        {distribucionTipos.map((d, i) => <Cell key={i} fill={TIPO_COLORS[d.nombre] || CAT_COLORS[i % CAT_COLORS.length]} />)}
                       </Pie>
-                      {/* Anillo externo: categorías */}
                       <Pie data={distribucionCats} dataKey="total" nameKey="nombre" cx="50%" cy="50%" outerRadius={95} innerRadius={65}>
-                        {distribucionCats.map((d, i) => (
-                          <Cell key={i} fill={TIPO_COLORS[d.tipo] || CAT_COLORS[i % CAT_COLORS.length]} opacity={0.6 + (i % 3) * 0.13} />
-                        ))}
+                        {distribucionCats.map((d, i) => <Cell key={i} fill={TIPO_COLORS[d.tipo] || CAT_COLORS[i % CAT_COLORS.length]} opacity={0.65 + (i % 3) * 0.12} />)}
                       </Pie>
                       <Tooltip formatter={(v: any) => formatMonto(v)} {...tooltipStyle} />
                     </PieChart>
