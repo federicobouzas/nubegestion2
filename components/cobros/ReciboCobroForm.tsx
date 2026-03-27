@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Save, X } from 'lucide-react'
-import { getCuentas, getFacturasVentaCliente, formatMonto } from '@/lib/cobros'
+import { getFacturasVentaCliente, formatMonto } from '@/lib/cobros'
+import { getCuentas } from '@/lib/cuentas'
 import { getClientes } from '@/lib/clientes'
 import FormErrorBanner from '@/components/shared/FormErrorBanner'
 import FormErrorModal from '@/components/shared/FormErrorModal'
@@ -69,8 +70,8 @@ export default function ReciboCobroFormComp({ onSubmit }: Props) {
   })
 
   useEffect(() => {
-    getClientes().then((d) => setClientes(d || []))
-    getCuentas().then((d) => setCuentas(d || []))
+    getClientes({ estado: 'activo' }).then(d => setClientes(d || []))
+    getCuentas({ activo: true }).then(d => setCuentas(d || []))
   }, [])
 
   async function selectCliente(id: string) {

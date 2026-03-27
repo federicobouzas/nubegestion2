@@ -2,7 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Save, X } from 'lucide-react'
-import { getCuentas, getFacturasCompraProveedor, formatMonto } from '@/lib/pagos'
+import { getFacturasCompraProveedor, formatMonto } from '@/lib/pagos'
+import { getCuentas } from '@/lib/cuentas'
 import { getProveedores } from '@/lib/proveedores'
 import FormErrorBanner from '@/components/shared/FormErrorBanner'
 import FormErrorModal from '@/components/shared/FormErrorModal'
@@ -43,8 +44,8 @@ export default function ReciboPagoFormComp({ onSubmit }: Props) {
   })
 
   useEffect(() => {
-    getProveedores().then(d => setProveedores(d || []))
-    getCuentas().then(d => setCuentas(d || []))
+    getProveedores({ estado: 'activo' }).then(d => setProveedores(d || []))
+    getCuentas({ activo: true }).then(d => setCuentas(d || []))
   }, [])
 
   async function selectProveedor(id: string) {

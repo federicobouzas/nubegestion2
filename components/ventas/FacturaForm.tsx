@@ -50,8 +50,8 @@ export default function FacturaForm({ onSubmit }: Props) {
   })
 
   useEffect(() => {
-    getClientes().then(d => setClientes(d || []))
-    getProductos().then(d => setProductos(d || []))
+    getClientes({ estado: 'activo' }).then(d => setClientes(d || []))
+    getProductos({ activo: true }).then(d => setProductos(d || []))
   }, [])
 
   function clearError(field: string) {

@@ -64,37 +64,23 @@ export async function getRetencionesPago(recibo_id: string) {
   return data
 }
 
-export async function getCuentas() {
-  const supabase = createClient()
-  const tenantId = await getTenantId()
-  const { data, error } = await supabase
-    .from('cuentas')
-    .select('id, nombre, tipo, activo')
-    .eq('tenant_id', tenantId)
-    .eq('activo', true)
-    .order('nombre')
-  if (error) throw error
-  const result = await Promise.all((data || []).map(async (c: any) => {
-    const { data: saldo } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: c.id })
-    return { ...c, saldo_actual: Number(saldo ?? 0) }
-  }))
-  return result
-}
-
 export async function getFacturasCompraProveedor(proveedor_id: string) {
   const supabase = createClient()
   const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('facturas_compra')
-    .select('id, codigo, numero, total, fecha_emision, fecha_vencimiento')
+    .select('id, codigo, numero, fecha_emision, fecha_vencimiento')
     .eq('tenant_id', tenantId)
     .eq('proveedor_id', proveedor_id)
     .or('notas.is.null,notas.neq.[ANULADA]')
     .order('fecha_emision', { ascending: true })
   if (error) throw error
   const conSaldo = await Promise.all((data || []).map(async (fc: any) => {
-    const { data: saldo } = await supabase.rpc('get_saldo_factura_compra', { p_factura_id: fc.id })
-    return { ...fc, saldo_pendiente: Number(saldo ?? fc.total) }
+    const [{ data: saldo }, { data: total }] = await Promise.all([
+      supabase.rpc('get_saldo_factura_compra', { p_factura_id: fc.id }),
+      supabase.rpc('get_total_factura_compra_con_percepciones', { p_factura_id: fc.id }),
+    ])
+    return { ...fc, saldo_pendiente: Number(saldo ?? 0), total: Number(total ?? 0) }
   }))
   return conSaldo.filter(f => f.saldo_pendiente > 0)
 }
