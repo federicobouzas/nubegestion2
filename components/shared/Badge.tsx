@@ -8,11 +8,11 @@ const dots: Record<BadgeVariant, string> = {
   success: 'bg-[#4EBB7F]', warning: 'bg-[#FDBC16]', danger: 'bg-[#EE3232]',
   cyan: 'bg-[#2CBAF2]', navy: 'bg-[#2B445A]', orange: 'bg-[#F2682E]', gray: 'bg-[#A8A49D]',
 }
-export default function Badge({ variant, label, dot = true }: { variant: BadgeVariant; label: string; dot?: boolean }) {
+export default function Badge({ variant, children, dot = true }: { variant: BadgeVariant; children: React.ReactNode; dot?: boolean }) {
   return (
     <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${variants[variant]}`}>
       {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dots[variant]}`} />}
-      {label}
+      {children}
     </span>
   )
 }

@@ -1,17 +1,15 @@
 import { createClient } from './supabase'
-import { TENANT_ID } from './constants'
+import { getTenantId } from '@/lib/tenant'
+import { applyFilters } from '@/lib/query'
 import type { CuentaForm } from '@/types/cuentas'
 
-export async function getCuentas() {
+export async function getCuentas({ ...filters }: Record<string, any> = {}) {
   const supabase = createClient()
-  const { data, error } = await supabase
-    .from('cuentas')
-    .select('*')
-    .eq('tenant_id', TENANT_ID)
-    .order('nombre')
+  const tenantId = await getTenantId()
+  let q = supabase.from('cuentas').select('*').eq('tenant_id', tenantId).order('nombre')
+  q = applyFilters(q, filters)
+  const { data, error } = await q
   if (error) throw error
-
-  // Calcular saldo real para cada cuenta
   const result = await Promise.all((data || []).map(async (c: any) => {
     const { data: saldo } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: c.id })
     return { ...c, saldo_actual: saldo ?? 0 }
@@ -21,11 +19,12 @@ export async function getCuentas() {
 
 export async function getCuenta(id: string) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('cuentas')
     .select('*')
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .single()
   if (error) throw error
   const { data: saldo } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: id })
@@ -34,9 +33,10 @@ export async function getCuenta(id: string) {
 
 export async function createCuenta(form: CuentaForm) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('cuentas')
-    .insert({ ...form, tenant_id: TENANT_ID, saldo_inicial: 0, saldo_actual: 0 })
+    .insert({ ...form, tenant_id: tenantId, saldo_inicial: 0, saldo_actual: 0 })
     .select()
     .single()
   if (error) throw error
@@ -45,11 +45,12 @@ export async function createCuenta(form: CuentaForm) {
 
 export async function updateCuenta(id: string, form: CuentaForm) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('cuentas')
     .update(form)
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .select()
     .single()
   if (error) throw error

@@ -1,5 +1,5 @@
 import { createClient } from './supabase'
-import { TENANT_ID } from './constants'
+import { getTenantId } from '@/lib/tenant'
 import type { CategoriaGastoForm, GastoForm } from '@/types/gastos'
 
 export const TIPOS_CATEGORIA = [
@@ -15,10 +15,11 @@ export const TIPOS_CATEGORIA = [
 
 export async function getCategoriasGasto() {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('categorias_gastos')
     .select('*')
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .order('tipo').order('descripcion')
   if (error) throw error
   return data
@@ -26,11 +27,12 @@ export async function getCategoriasGasto() {
 
 export async function getCategoriaGasto(id: string) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('categorias_gastos')
     .select('*')
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .single()
   if (error) throw error
   return data
@@ -38,9 +40,10 @@ export async function getCategoriaGasto(id: string) {
 
 export async function createCategoriaGasto(form: CategoriaGastoForm) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('categorias_gastos')
-    .insert({ ...form, tenant_id: TENANT_ID })
+    .insert({ ...form, tenant_id: tenantId })
     .select().single()
   if (error) throw error
   return data
@@ -48,11 +51,12 @@ export async function createCategoriaGasto(form: CategoriaGastoForm) {
 
 export async function updateCategoriaGasto(id: string, form: CategoriaGastoForm) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('categorias_gastos')
     .update(form)
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .select().single()
   if (error) throw error
   return data
@@ -60,11 +64,12 @@ export async function updateCategoriaGasto(id: string, form: CategoriaGastoForm)
 
 export async function deleteCategoriaGasto(id: string) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { error } = await supabase
     .from('categorias_gastos')
     .delete()
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
   if (error) throw error
 }
 
@@ -72,10 +77,11 @@ export async function deleteCategoriaGasto(id: string) {
 
 export async function getGastos() {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('gastos')
     .select('*, categorias_gastos(tipo, descripcion)')
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
   if (error) throw error
   const result = await Promise.all((data || []).map(async (g: any) => {
@@ -87,11 +93,12 @@ export async function getGastos() {
 
 export async function getGasto(id: string) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('gastos')
     .select('*, categorias_gastos(tipo, descripcion)')
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .single()
   if (error) throw error
   const { data: total } = await supabase.rpc('get_total_gasto', { p_gasto_id: id })
@@ -110,10 +117,11 @@ export async function getMetodosGasto(gasto_id: string) {
 
 export async function getCuentas() {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('cuentas')
     .select('id, nombre, tipo, activo')
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .eq('activo', true)
     .order('nombre')
   if (error) throw error
@@ -126,12 +134,12 @@ export async function getCuentas() {
 
 export async function createGasto(form: GastoForm) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
 
   const { data: codigo, error: codErr } = await supabase
-    .rpc('generar_codigo', { p_tenant_id: TENANT_ID, p_tipo: 'GA' })
+    .rpc('generar_codigo', { p_tenant_id: tenantId, p_tipo: 'GA' })
   if (codErr) throw codErr
 
-  // Validar saldo de cuentas
   for (const m of form.metodos) {
     const { data: saldo } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: m.cuenta_id })
     if (Number(m.monto) > Number(saldo ?? 0)) {
@@ -143,7 +151,7 @@ export async function createGasto(form: GastoForm) {
   const { data: gasto, error } = await supabase
     .from('gastos')
     .insert({
-      tenant_id: TENANT_ID,
+      tenant_id: tenantId,
       codigo,
       categoria_id: form.categoria_id,
       descripcion: form.descripcion || null,
@@ -158,7 +166,7 @@ export async function createGasto(form: GastoForm) {
     const { error: em } = await supabase
       .from('gasto_metodos')
       .insert({
-        tenant_id: TENANT_ID,
+        tenant_id: tenantId,
         gasto_id: gasto.id,
         cuenta_id: m.cuenta_id,
         importe: Number(m.monto),
@@ -171,12 +179,12 @@ export async function createGasto(form: GastoForm) {
 
 export async function deleteGasto(id: string) {
   const supabase = createClient()
-  // saldo de cuentas se recalcula solo
+  const tenantId = await getTenantId()
   const { error } = await supabase
     .from('gastos')
     .update({ notas: '[ANULADO]' })
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
   if (error) throw error
 }
 

@@ -6,7 +6,6 @@ import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
 import Badge from '@/components/shared/Badge'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
-import { TENANT_ID } from '@/lib/constants'
 
 export default function ProveedoresPage() {
   const [search, setSearch] = useState('')
@@ -15,7 +14,6 @@ export default function ProveedoresPage() {
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
     table: 'proveedores',
     select: '*',
-    tenant_id: TENANT_ID,
     orderBy: 'nombre_razon_social',
     orderAsc: true,
     search: { column: 'nombre_razon_social', value: search },

@@ -1,15 +1,16 @@
 import { createClient } from './supabase'
-import { TENANT_ID } from './constants'
+import { getTenantId } from '@/lib/tenant'
 import type { OtroIngresoForm } from '@/types/otros-ingresos'
 
 export const TIPOS_INGRESO = ['Aportes Socios', 'Préstamos Financieros', 'Otros Ingresos'] as const
 
 export async function getOtrosIngresos() {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('otros_ingresos')
     .select('*, cuentas(nombre, tipo)')
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
   if (error) throw error
   return data
@@ -17,11 +18,12 @@ export async function getOtrosIngresos() {
 
 export async function getOtroIngreso(id: string) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('otros_ingresos')
     .select('*, cuentas(nombre, tipo)')
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .single()
   if (error) throw error
   return data
@@ -29,9 +31,10 @@ export async function getOtroIngreso(id: string) {
 
 export async function createOtroIngreso(form: OtroIngresoForm) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
 
   const { data: codigo, error: codErr } = await supabase.rpc('generar_codigo', {
-    p_tenant_id: TENANT_ID,
+    p_tenant_id: tenantId,
     p_tipo: 'OI',
   })
   if (codErr) throw codErr
@@ -45,7 +48,7 @@ export async function createOtroIngreso(form: OtroIngresoForm) {
       cuenta_id: form.cuenta_id,
       importe: Number(form.importe),
       notas: form.notas.trim() || null,
-      tenant_id: TENANT_ID,
+      tenant_id: tenantId,
       codigo,
     })
     .select()
@@ -69,12 +72,13 @@ export async function createOtroIngreso(form: OtroIngresoForm) {
 
 export async function updateOtroIngreso(id: string, form: OtroIngresoForm) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
 
   const { data: anterior } = await supabase
     .from('otros_ingresos')
     .select('importe, cuenta_id')
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .single()
   if (!anterior) throw new Error('Ingreso no encontrado')
 
@@ -114,7 +118,7 @@ export async function updateOtroIngreso(id: string, form: OtroIngresoForm) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .select()
     .single()
   if (error) throw error
@@ -123,12 +127,13 @@ export async function updateOtroIngreso(id: string, form: OtroIngresoForm) {
 
 export async function deleteOtroIngreso(id: string) {
   const supabase = createClient()
+  const tenantId = await getTenantId()
 
   const { data: ingreso } = await supabase
     .from('otros_ingresos')
     .select('importe, cuenta_id')
     .eq('id', id)
-    .eq('tenant_id', TENANT_ID)
+    .eq('tenant_id', tenantId)
     .single()
   if (ingreso) {
     const { data: cuenta } = await supabase
@@ -144,7 +149,7 @@ export async function deleteOtroIngreso(id: string) {
     }
   }
 
-  const { error } = await supabase.from('otros_ingresos').delete().eq('id', id).eq('tenant_id', TENANT_ID)
+  const { error } = await supabase.from('otros_ingresos').delete().eq('id', id).eq('tenant_id', tenantId)
   if (error) throw error
 }
 

@@ -6,7 +6,6 @@ import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
 import Badge from '@/components/shared/Badge'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
-import { TENANT_ID } from '@/lib/constants'
 
 export default function ClientesPage() {
   const [search, setSearch] = useState('')
@@ -15,7 +14,6 @@ export default function ClientesPage() {
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
     table: 'clientes',
     select: '*',
-    tenant_id: TENANT_ID,
     orderBy: 'nombre_razon_social',
     orderAsc: true,
     search: { column: 'nombre_razon_social', value: search },
@@ -72,7 +70,7 @@ export default function ClientesPage() {
                     <td className="px-4 py-3 font-mono text-[12px] text-[#6B6762]">{c.cuit || '—'}</td>
                     <td className="px-4 py-3 text-[12px] text-[#6B6762]">{c.condicion_iva}</td>
                     <td className="px-4 py-3"><span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-[5px] bg-[#E8F7EF] text-[#1A5C38]">{c.tipo_factura}</span></td>
-                    <td className="px-4 py-3"><Badge variant={c.estado === 'activo' ? 'success' : 'default'}>{c.estado === 'activo' ? 'Activo' : 'Inactivo'}</Badge></td>
+                    <td className="px-4 py-3"><Badge variant={c.estado === 'activo' ? 'success' : 'danger'}>{c.estado === 'activo' ? 'Activo' : 'Inactivo'}</Badge></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link href={`/clientes/${c.id}/editar`} className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#2B445A] hover:text-[#2B445A] transition-colors"><Pencil size={13} strokeWidth={2} /></Link>

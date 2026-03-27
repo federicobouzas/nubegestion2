@@ -6,7 +6,6 @@ import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
 import Badge from '@/components/shared/Badge'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
-import { TENANT_ID } from '@/lib/constants'
 import { pluralize } from '@/lib/utils'
 
 export default function ProductosPage() {
@@ -16,7 +15,6 @@ export default function ProductosPage() {
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
     table: 'productos',
     select: '*',
-    tenant_id: TENANT_ID,
     orderBy: 'nombre',
     orderAsc: true,
     search: { column: 'nombre', value: search },

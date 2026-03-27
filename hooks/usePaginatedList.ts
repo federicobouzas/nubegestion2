@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
+import { getTenantId } from '@/lib/tenant'
 
 export const PAGE_SIZES = [20, 50, 100]
 
 interface Options {
   table: string
   select: string
-  tenant_id: string
   orderBy?: string
   orderAsc?: boolean
   filters?: Record<string, any>
@@ -26,11 +26,13 @@ export function usePaginatedList(opts: Options) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const supabase = createClient()
+      const supabase = createClient()  
+      const tenantId = await getTenantId()
+
       let q = supabase
         .from(opts.table)
         .select(opts.select, { count: 'exact' })
-        .eq('tenant_id', opts.tenant_id)
+        .eq('tenant_id', tenantId)
 
       if (opts.filters) {
         for (const [key, val] of Object.entries(opts.filters)) {
