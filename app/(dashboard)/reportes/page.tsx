@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Bar, PieChart, Pie, Cell } from 'recharts'
 import Topbar from '@/components/shared/Topbar'
 import { createClient } from '@/lib/supabase'
-import { TENANT_ID } from '@/lib/constants'
+import { getTenantId } from '@/lib/tenant'
 
 function formatM(n: number) {
   if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
@@ -36,8 +36,7 @@ function SectionCard({ title, children, right }: { title: string; children: Reac
   )
 }
 
-// Obtener fecha base (la más reciente con datos en la BD)
-async function getFechaBase(supabase: any): Promise<Date> {
+async function getFechaBase(supabase: any, TENANT_ID: string): Promise<Date> {
   const results = await Promise.all([
     supabase.from('recibos_cobro').select('fecha').eq('tenant_id', TENANT_ID).order('fecha', { ascending: false }).limit(1),
     supabase.from('recibos_pago').select('fecha').eq('tenant_id', TENANT_ID).order('fecha', { ascending: false }).limit(1),
@@ -47,9 +46,9 @@ async function getFechaBase(supabase: any): Promise<Date> {
     results[0].data?.[0]?.fecha,
     results[1].data?.[0]?.fecha,
     results[2].data?.[0]?.fecha_pago,
-  ].filter(Boolean).map(f => new Date(f))
+  ].filter(Boolean).map((f: string) => new Date(f))
   if (fechas.length === 0) return new Date()
-  return new Date(Math.max(...fechas.map(f => f.getTime())))
+  return new Date(Math.max(...fechas.map((f: Date) => f.getTime())))
 }
 
 export default function ReportesPage() {
@@ -70,9 +69,9 @@ export default function ReportesPage() {
   useEffect(() => {
     async function init() {
       const supabase = createClient()
-      const base = await getFechaBase(supabase)
+      const TENANT_ID = await getTenantId()
+      const base = await getFechaBase(supabase, TENANT_ID)
 
-      // Opciones de meses desde base hacia atrás 24 meses
       const opts: { val: string; label: string }[] = []
       const cursor = new Date(base.getFullYear(), base.getMonth(), 1)
       for (let i = 0; i < 24; i++) {
@@ -84,9 +83,9 @@ export default function ReportesPage() {
       setOpcionesMeses(opts)
       setMesReporte(opts[0]?.val || '')
 
-      loadSaldoSemana(supabase, base)
-      loadFacturasMeses(supabase, base)
-      loadFlujoMeses(supabase, base)
+      loadSaldoSemana(supabase, base, TENANT_ID)
+      loadFacturasMeses(supabase, base, TENANT_ID)
+      loadFlujoMeses(supabase, base, TENANT_ID)
     }
     init()
   }, [])
@@ -95,9 +94,8 @@ export default function ReportesPage() {
     if (mesReporte) loadDistribucionGastos()
   }, [mesReporte])
 
-  async function loadSaldoSemana(supabase: any, base: Date) {
+  async function loadSaldoSemana(supabase: any, base: Date, TENANT_ID: string) {
     setLoadingSemana(true)
-    // Mostrar los últimos 7 días desde la fecha base
     const { data: cuentas } = await supabase.from('cuentas').select('id').eq('tenant_id', TENANT_ID).eq('activo', true)
     let saldoActual = 0
     await Promise.all((cuentas || []).map(async (c: any) => {
@@ -114,82 +112,85 @@ export default function ReportesPage() {
     setLoadingSemana(false)
   }
 
-  async function loadFacturasMeses(supabase: any, base: Date) {
+  async function loadFacturasMeses(supabase: any, base: Date, TENANT_ID: string) {
     setLoadingFacturas(true)
-    // Vencidos (antes del mes base) + mes base + mes base-1 + mes base-2
-    const puntos = []
-
-    // Vencidos: antes del primer día del mes base
     const inicioBase = new Date(base.getFullYear(), base.getMonth(), 1)
-    puntos.push({ label: 'Vencidos', inicio: null, fin: new Date(inicioBase.getTime() - 1).toISOString().split('T')[0] })
+    const puntos = [
+      { label: 'Vencidos', desde: null, hasta: new Date(inicioBase.getTime() - 1).toISOString().split('T')[0] },
+      ...Array.from({ length: 3 }, (_, i) => {
+        const d = new Date(base.getFullYear(), base.getMonth() - i, 1)
+        return {
+          label: d.toLocaleString('es-AR', { month: 'short', year: '2-digit' }),
+          desde: new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0],
+          hasta: new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0],
+        }
+      })
+    ]
 
-    // 3 meses desde base hacia atrás
-    for (let i = 0; i < 3; i++) {
-      const d = new Date(base.getFullYear(), base.getMonth() - i, 1)
-      const inicio = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
-      const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
-      puntos.push({ label: d.toLocaleString('es-AR', { month: 'short', year: '2-digit' }), inicio, fin })
-    }
-
-    const resultado = []
     let saldoAcum = 0
-    for (const punto of puntos) {
-      let fvsQ, fcsQ
-      if (!punto.inicio) {
-        fvsQ = supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).lte('fecha_vencimiento', punto.fin).or('notas.is.null,notas.neq.[ANULADA]')
-        fcsQ = supabase.from('facturas_compra').select('id').eq('tenant_id', TENANT_ID).lte('fecha_vencimiento', punto.fin).or('notas.is.null,notas.neq.[ANULADA]')
-      } else {
-        fvsQ = supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).gte('fecha_vencimiento', punto.inicio).lte('fecha_vencimiento', punto.fin).or('notas.is.null,notas.neq.[ANULADA]')
-        fcsQ = supabase.from('facturas_compra').select('id').eq('tenant_id', TENANT_ID).gte('fecha_vencimiento', punto.inicio).lte('fecha_vencimiento', punto.fin).or('notas.is.null,notas.neq.[ANULADA]')
-      }
-      const [{ data: fvs }, { data: fcs }] = await Promise.all([fvsQ, fcsQ])
-      let ventas = 0, compras = 0
-      await Promise.all([
-        ...(fvs || []).map(async (f: any) => { const { data: s } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: f.id }); ventas += Number(s ?? 0) }),
-        ...(fcs || []).map(async (f: any) => { const { data: s } = await supabase.rpc('get_saldo_factura_compra', { p_factura_id: f.id }); compras += Number(s ?? 0) }),
-      ])
+    const resultado = await Promise.all(puntos.map(async (p) => {
+      const { data } = await supabase.rpc('get_saldos_facturas_periodo', {
+        p_tenant_id: TENANT_ID,
+        p_desde: p.desde,
+        p_hasta: p.hasta,
+      })
+      const ventas = Number(data?.[0]?.ventas ?? 0)
+      const compras = Number(data?.[0]?.compras ?? 0)
       saldoAcum += ventas - compras
-      resultado.push({ mes: punto.label, ventas, compras, saldo: saldoAcum })
-    }
-    setFacturasMeses(resultado)
+      return { mes: p.label, ventas, compras, saldo: saldoAcum }
+    }))
+
+    // Recalcular saldo acumulado secuencialmente
+    let acum = 0
+    const final = resultado.map(r => {
+      acum += r.ventas - r.compras
+      return { ...r, saldo: acum }
+    })
+
+    setFacturasMeses(final)
     setLoadingFacturas(false)
   }
 
-  async function loadFlujoMeses(supabase: any, base: Date) {
+  async function loadFlujoMeses(supabase: any, base: Date, TENANT_ID: string) {
     setLoadingFlujo(true)
-    const meses = []
+    const periodos = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(base.getFullYear(), base.getMonth() - (5 - i), 1)
+      return {
+        label: d.toLocaleString('es-AR', { month: 'short', year: '2-digit' }),
+        desde: new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0],
+        hasta: new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0],
+      }
+    })
+
+    const resultados = await Promise.all(periodos.map(async (p) => {
+      const { data } = await supabase.rpc('get_flujo_mes', {
+        p_tenant_id: TENANT_ID,
+        p_desde: p.desde,
+        p_hasta: p.hasta,
+      })
+      return {
+        mes: p.label,
+        cobros: Number(data?.[0]?.cobros ?? 0),
+        pagos: Number(data?.[0]?.pagos ?? 0),
+        otrosIngresos: Number(data?.[0]?.otros_ingresos ?? 0),
+        gastos: Number(data?.[0]?.gastos ?? 0),
+      }
+    }))
+
     let saldoAcum = 0
-    // 6 meses desde base hacia atrás
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(base.getFullYear(), base.getMonth() - i, 1)
-      const inicio = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
-      const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
-      const label = d.toLocaleString('es-AR', { month: 'short', year: '2-digit' })
+    const final = resultados.map(r => {
+      saldoAcum += r.cobros + r.otrosIngresos - r.pagos - r.gastos
+      return { ...r, saldo: saldoAcum }
+    })
 
-      const [{ data: rcs }, { data: rps }, { data: ois }, { data: gass }] = await Promise.all([
-        supabase.from('recibos_cobro').select('id').eq('tenant_id', TENANT_ID).gte('fecha', inicio).lte('fecha', fin).or('notas.is.null,notas.neq.[ANULADO]'),
-        supabase.from('recibos_pago').select('id').eq('tenant_id', TENANT_ID).gte('fecha', inicio).lte('fecha', fin).or('notas.is.null,notas.neq.[ANULADO]'),
-        supabase.from('otros_ingresos').select('importe').eq('tenant_id', TENANT_ID).gte('fecha', inicio).lte('fecha', fin),
-        supabase.from('gastos').select('id').eq('tenant_id', TENANT_ID).gte('fecha_pago', inicio).lte('fecha_pago', fin).or('notas.is.null,notas.neq.[ANULADO]'),
-      ])
-
-      let cobros = 0, pagos = 0, gastos = 0
-      await Promise.all([
-        ...(rcs || []).map(async (r: any) => { const { data: t } = await supabase.rpc('get_total_recibo_cobro', { p_recibo_id: r.id }); cobros += Number(t ?? 0) }),
-        ...(rps || []).map(async (r: any) => { const { data: t } = await supabase.rpc('get_total_recibo_pago', { p_recibo_id: r.id }); pagos += Number(t ?? 0) }),
-        ...(gass || []).map(async (g: any) => { const { data: t } = await supabase.rpc('get_total_gasto', { p_gasto_id: g.id }); gastos += Number(t ?? 0) }),
-      ])
-      const otrosIngresos = (ois || []).reduce((a: number, o: any) => a + Number(o.importe), 0)
-      saldoAcum += cobros + otrosIngresos - pagos - gastos
-      meses.push({ mes: label, cobros, otrosIngresos, pagos, gastos, saldo: saldoAcum })
-    }
-    setFlujoMeses(meses)
+    setFlujoMeses(final)
     setLoadingFlujo(false)
   }
 
   async function loadDistribucionGastos() {
     setLoadingGastos(true)
     const supabase = createClient()
+    const TENANT_ID = await getTenantId()
     const [year, month] = mesReporte.split('-').map(Number)
     const inicio = new Date(year, month - 1, 1).toISOString().split('T')[0]
     const fin = new Date(year, month, 0).toISOString().split('T')[0]
@@ -200,7 +201,6 @@ export default function ReportesPage() {
       .eq('tenant_id', TENANT_ID)
       .gte('fecha_pago', inicio)
       .lte('fecha_pago', fin)
-      .or('notas.is.null,notas.neq.[ANULADO]')
 
     const byTipo: Record<string, number> = {}
     const byCat: Record<string, { tipo: string; nombre: string; total: number }> = {}

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { TrendingUp, TrendingDown, Wallet, Users, Building2, AlertTriangle } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
 import { createClient } from '@/lib/supabase'
-import { TENANT_ID } from '@/lib/constants'
+import { getTenantId } from '@/lib/tenant'
 
 function formatMonto(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
@@ -39,78 +39,73 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       const supabase = createClient()
+      const TENANT_ID = await getTenantId()
       const now = new Date()
       const mesInicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
       const mesInicioAnt = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split('T')[0]
       const mesFinAnt = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0]
       const hoy = now.toISOString().split('T')[0]
 
-      const { data: fvMes } = await supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).gte('fecha_emision', mesInicio).or('notas.is.null,notas.neq.[ANULADA]')
-      const { data: fvMesAnt } = await supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).gte('fecha_emision', mesInicioAnt).lte('fecha_emision', mesFinAnt).or('notas.is.null,notas.neq.[ANULADA]')
-      let facturadoMes = 0, facturadoMesAnt = 0
-      await Promise.all([
-        ...(fvMes || []).map(async (f: any) => { const { data: t } = await supabase.rpc('get_total_factura_venta_con_percepciones', { p_factura_id: f.id }); facturadoMes += Number(t ?? 0) }),
-        ...(fvMesAnt || []).map(async (f: any) => { const { data: t } = await supabase.rpc('get_total_factura_venta_con_percepciones', { p_factura_id: f.id }); facturadoMesAnt += Number(t ?? 0) }),
+      // KPIs — una RPC por total en vez de N calls
+      const [
+        { data: facturadoMesData },
+        { data: facturadoMesAntData },
+        { data: cobradoMesData },
+        { data: comprasMesData },
+        { data: pagadoMesData },
+        { data: ccClientesData },
+        { data: ccProveedoresData },
+        { data: cuentas },
+        { data: ultimasVentas },
+        { data: stockBajo },
+        { count: factVencidas },
+        { count: factCompraVencidas },
+      ] = await Promise.all([
+        supabase.rpc('get_total_facturado_mes', { p_tenant_id: TENANT_ID, p_desde: mesInicio, p_hasta: hoy }),
+        supabase.rpc('get_total_facturado_mes', { p_tenant_id: TENANT_ID, p_desde: mesInicioAnt, p_hasta: mesFinAnt }),
+        supabase.rpc('get_total_cobrado_mes', { p_tenant_id: TENANT_ID, p_desde: mesInicio, p_hasta: hoy }),
+        supabase.rpc('get_total_compras_mes', { p_tenant_id: TENANT_ID, p_desde: mesInicio, p_hasta: hoy }),
+        supabase.rpc('get_total_pagado_mes', { p_tenant_id: TENANT_ID, p_desde: mesInicio, p_hasta: hoy }),
+        supabase.rpc('get_cc_clientes', { p_tenant_id: TENANT_ID }),
+        supabase.rpc('get_cc_proveedores', { p_tenant_id: TENANT_ID }),
+        supabase.from('cuentas').select('id, nombre').eq('tenant_id', TENANT_ID).eq('activo', true).order('nombre'),
+        supabase.from('facturas_venta').select('id, codigo, numero, tipo, fecha_emision, clientes(nombre_razon_social)').eq('tenant_id', TENANT_ID).or('notas.is.null,notas.neq.[ANULADA]').order('created_at', { ascending: false }).limit(5),
+        supabase.from('productos').select('id, nombre, stock_actual, stock_minimo').eq('tenant_id', TENANT_ID).eq('estado', 'activo').order('stock_actual', { ascending: true }).limit(10),
+        supabase.from('facturas_venta').select('id', { count: 'exact', head: true }).eq('tenant_id', TENANT_ID).lt('fecha_vencimiento', hoy).or('notas.is.null,notas.neq.[ANULADA]'),
+        supabase.from('facturas_compra').select('id', { count: 'exact', head: true }).eq('tenant_id', TENANT_ID).lt('fecha_vencimiento', hoy).or('notas.is.null,notas.neq.[ANULADA]'),
       ])
 
-      const { data: rcMes } = await supabase.from('recibos_cobro').select('id').eq('tenant_id', TENANT_ID).gte('fecha', mesInicio).or('notas.is.null,notas.neq.[ANULADO]')
-      let cobradoMes = 0
-      await Promise.all((rcMes || []).map(async (r: any) => { const { data: t } = await supabase.rpc('get_total_recibo_cobro', { p_recibo_id: r.id }); cobradoMes += Number(t ?? 0) }))
-
-      const { data: fcMes } = await supabase.from('facturas_compra').select('id').eq('tenant_id', TENANT_ID).gte('fecha_emision', mesInicio).or('notas.is.null,notas.neq.[ANULADA]')
-      let comprasMes = 0
-      await Promise.all((fcMes || []).map(async (f: any) => { const { data: t } = await supabase.rpc('get_total_factura_compra_con_percepciones', { p_factura_id: f.id }); comprasMes += Number(t ?? 0) }))
-
-      const { data: rpMes } = await supabase.from('recibos_pago').select('id').eq('tenant_id', TENANT_ID).gte('fecha', mesInicio).or('notas.is.null,notas.neq.[ANULADO]')
-      let pagadoMes = 0
-      await Promise.all((rpMes || []).map(async (r: any) => { const { data: t } = await supabase.rpc('get_total_recibo_pago', { p_recibo_id: r.id }); pagadoMes += Number(t ?? 0) }))
-
-      const { data: cuentas } = await supabase.from('cuentas').select('id, nombre').eq('tenant_id', TENANT_ID).eq('activo', true).order('nombre')
+      // Saldos de cuentas
       const saldoCuentas = await Promise.all((cuentas || []).map(async (c: any) => {
         const { data: s } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: c.id })
         return { nombre: c.nombre, saldo: Number(s ?? 0) }
       }))
 
-      // CC Clientes por cliente
-      const { data: clientes } = await supabase.from('clientes').select('id, nombre_razon_social').eq('tenant_id', TENANT_ID).eq('estado', 'activo')
-      const ccClientesRaw = await Promise.all((clientes || []).map(async (c: any) => {
-        const { data: fvs } = await supabase.from('facturas_venta').select('id').eq('tenant_id', TENANT_ID).eq('cliente_id', c.id).or('notas.is.null,notas.neq.[ANULADA]')
-        let saldo = 0
-        await Promise.all((fvs || []).map(async (f: any) => {
-          const { data: s } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: f.id })
-          saldo += Number(s ?? 0)
-        }))
-        return { nombre: c.nombre_razon_social, saldo }
-      }))
-      const ccClientes = ccClientesRaw.filter(c => c.saldo > 0).sort((a, b) => b.saldo - a.saldo)
-
-      // CC Proveedores por proveedor
-      const { data: proveedores } = await supabase.from('proveedores').select('id, nombre_razon_social').eq('tenant_id', TENANT_ID).eq('estado', 'activo')
-      const ccProveedoresRaw = await Promise.all((proveedores || []).map(async (p: any) => {
-        const { data: fcs } = await supabase.from('facturas_compra').select('id').eq('tenant_id', TENANT_ID).eq('proveedor_id', p.id).or('notas.is.null,notas.neq.[ANULADA]')
-        let saldo = 0
-        await Promise.all((fcs || []).map(async (f: any) => {
-          const { data: s } = await supabase.rpc('get_saldo_factura_compra', { p_factura_id: f.id })
-          saldo += Number(s ?? 0)
-        }))
-        return { nombre: p.nombre_razon_social, saldo }
-      }))
-      const ccProveedores = ccProveedoresRaw.filter(p => p.saldo > 0).sort((a, b) => b.saldo - a.saldo)
-
-      const { data: ultimasVentas } = await supabase.from('facturas_venta').select('id, codigo, numero, tipo, fecha_emision, clientes(nombre_razon_social)').eq('tenant_id', TENANT_ID).or('notas.is.null,notas.neq.[ANULADA]').order('created_at', { ascending: false }).limit(5)
+      // Últimas ventas con total y saldo
       const ultimasVentasConTotal = await Promise.all((ultimasVentas || []).map(async (f: any) => {
-        const { data: t } = await supabase.rpc('get_total_factura_venta_con_percepciones', { p_factura_id: f.id })
-        const { data: s } = await supabase.rpc('get_saldo_factura_venta', { p_factura_id: f.id })
+        const [{ data: t }, { data: s }] = await Promise.all([
+          supabase.rpc('get_total_factura_venta_con_percepciones', { p_factura_id: f.id }),
+          supabase.rpc('get_saldo_factura_venta', { p_factura_id: f.id }),
+        ])
         return { ...f, total: Number(t ?? 0), saldo_pendiente: Number(s ?? 0) }
       }))
 
-      const { data: stockBajo } = await supabase.from('productos').select('id, nombre, stock_actual, stock_minimo').eq('tenant_id', TENANT_ID).eq('estado', 'activo').order('stock_actual', { ascending: true }).limit(10)
       const stockBajoFiltrado = (stockBajo || []).filter((p: any) => p.stock_actual <= (p.stock_minimo || 0)).slice(0, 5)
 
-      const { count: factVencidas } = await supabase.from('facturas_venta').select('id', { count: 'exact', head: true }).eq('tenant_id', TENANT_ID).lt('fecha_vencimiento', hoy).or('notas.is.null,notas.neq.[ANULADA]')
-      const { count: factCompraVencidas } = await supabase.from('facturas_compra').select('id', { count: 'exact', head: true }).eq('tenant_id', TENANT_ID).lt('fecha_vencimiento', hoy).or('notas.is.null,notas.neq.[ANULADA]')
-
-      setData({ facturadoMes, facturadoMesAnt, cobradoMes, comprasMes, pagadoMes, saldoCuentas, ccClientes, ccProveedores, ultimasVentas: ultimasVentasConTotal, stockBajo: stockBajoFiltrado, factVencidas: factVencidas ?? 0, factCompraVencidas: factCompraVencidas ?? 0 })
+      setData({
+        facturadoMes: Number(facturadoMesData ?? 0),
+        facturadoMesAnt: Number(facturadoMesAntData ?? 0),
+        cobradoMes: Number(cobradoMesData ?? 0),
+        comprasMes: Number(comprasMesData ?? 0),
+        pagadoMes: Number(pagadoMesData ?? 0),
+        saldoCuentas,
+        ccClientes: (ccClientesData || []).map((c: any) => ({ nombre: c.nombre, saldo: Number(c.saldo) })),
+        ccProveedores: (ccProveedoresData || []).map((p: any) => ({ nombre: p.nombre, saldo: Number(p.saldo) })),
+        ultimasVentas: ultimasVentasConTotal,
+        stockBajo: stockBajoFiltrado,
+        factVencidas: factVencidas ?? 0,
+        factCompraVencidas: factCompraVencidas ?? 0,
+      })
       setLoading(false)
     }
     load()
@@ -153,7 +148,6 @@ export default function DashboardPage() {
 
         {/* Tesorería + CC */}
         <div className="grid grid-cols-3 gap-4">
-          {/* Tesorería */}
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm flex flex-col" style={{ height: 280 }}>
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center gap-2 flex-shrink-0">
               <Wallet size={14} className="text-[#A8A49D]" />
@@ -170,7 +164,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* CC Clientes */}
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm flex flex-col" style={{ height: 280 }}>
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center gap-2 flex-shrink-0">
               <Users size={14} className="text-[#A8A49D]" />
@@ -190,7 +183,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* CC Proveedores */}
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm flex flex-col" style={{ height: 280 }}>
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center gap-2 flex-shrink-0">
               <Building2 size={14} className="text-[#A8A49D]" />

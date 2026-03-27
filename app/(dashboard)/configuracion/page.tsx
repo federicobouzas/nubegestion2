@@ -6,8 +6,9 @@ import FieldWrapper, { inputCls } from '@/components/shared/FieldWrapper'
 import FormErrorModal from '@/components/shared/FormErrorModal'
 import FormErrorBanner from '@/components/shared/FormErrorBanner'
 import { createClient } from '@/lib/supabase'
-import { TENANT_ID } from '@/lib/constants'
+import { getTenantId } from '@/lib/tenant'
 
+const TENANT_ID = await getTenantId()
 const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final']
 
 export default function ConfiguracionPage() {

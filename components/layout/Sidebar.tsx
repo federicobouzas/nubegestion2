@@ -85,7 +85,7 @@ export default function Sidebar() {
         </div>
         <button
           onClick={async () => { await signOut(); router.push('/login'); router.refresh() }}
-          className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#A8A49D] hover:text-white hover:bg-white/10 transition-colors">
+          className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[#A8A49D] hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
             <LogOut size={14} strokeWidth={2} />
         </button>
       </div>
