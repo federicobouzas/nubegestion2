@@ -36,7 +36,7 @@ export async function createCuenta(form: CuentaForm) {
   const tenantId = await getTenantId()
   const { data, error } = await supabase
     .from('cuentas')
-    .insert({ ...form, tenant_id: tenantId, saldo_inicial: 0, saldo_actual: 0 })
+    .insert({ ...form, tenant_id: tenantId })
     .select()
     .single()
   if (error) throw error
@@ -46,6 +46,15 @@ export async function createCuenta(form: CuentaForm) {
 export async function updateCuenta(id: string, form: CuentaForm) {
   const supabase = createClient()
   const tenantId = await getTenantId()
+
+  // Si se está desactivando, validar saldo 0
+  if (form.activo === false) {
+    const { data: saldo } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: id })
+    if (Number(saldo ?? 0) !== 0) {
+      throw new Error('No se puede desactivar una cuenta con saldo distinto de $0. Transferí el saldo a otra cuenta primero.')
+    }
+  }
+
   const { data, error } = await supabase
     .from('cuentas')
     .update(form)

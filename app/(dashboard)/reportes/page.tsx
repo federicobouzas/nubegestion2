@@ -96,9 +96,9 @@ export default function ReportesPage() {
 
   async function loadSaldoSemana(supabase: any, base: Date, TENANT_ID: string) {
     setLoadingSemana(true)
-    const { data: cuentas } = await supabase.from('cuentas').select('id').eq('tenant_id', TENANT_ID).eq('activo', true)
+    const { data: cuentas } = await supabase.from('cuentas').select('id, tipo').eq('tenant_id', TENANT_ID).eq('activo', true)
     let saldoActual = 0
-    await Promise.all((cuentas || []).map(async (c: any) => {
+    await Promise.all((cuentas || []).filter((c: any) => c.tipo === 'efectivo' || c.tipo === 'banco').map(async (c: any) => {
       const { data: s } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: c.id })
       saldoActual += Number(s ?? 0)
     }))

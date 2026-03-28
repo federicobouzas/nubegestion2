@@ -35,10 +35,10 @@ const nav = [
   { section: 'Tesorería', items: [
     { label: 'Saldos', href: '/tesoreria/saldos', icon: Landmark },
     { label: 'Cuentas', href: '/tesoreria/cuentas', icon: Wallet },
-    { label: 'Movimientos', href: '/movimientos', icon: History },
+    { label: 'Movimientos', href: '/tesoreria/movimientos', icon: FileText },
+    { label: 'Historial', href: '/tesoreria/historial', icon: History },
   ]},
   { section: 'Sistema', items: [
-    { href: '/listas-precios', label: 'Listas de Precios', icon: Tag },
     { href: '/categorias-gastos', label: 'Categorías de Gastos', icon: FolderOpen },
     { label: 'Configuración', href: '/configuracion', icon: Settings },
     { label: 'Soporte', href: '/soporte', icon: Ticket },
