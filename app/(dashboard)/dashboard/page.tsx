@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { TrendingUp, TrendingDown, Wallet, Users, Building2, AlertTriangle } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
 import { createClient } from '@/lib/supabase'
@@ -8,6 +9,11 @@ import { getTenantId } from '@/lib/tenant'
 
 function formatMonto(n: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
+}
+function formatM(n: number) {
+  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
+  if (Math.abs(n) >= 1_000) return `$${(n / 1_000).toFixed(0)}K`
+  return `$${n.toFixed(0)}`
 }
 
 function KpiCard({ title, value, sub, icon, color }: { title: string; value: string; sub?: string; icon: React.ReactNode; color: string }) {
@@ -23,8 +29,14 @@ function KpiCard({ title, value, sub, icon, color }: { title: string; value: str
   )
 }
 
+const tooltipStyle = {
+  contentStyle: { background: '#fff', border: '1px solid #E5E4E0', borderRadius: 8, fontSize: 12 },
+  labelStyle: { fontWeight: 600, color: '#18181B' },
+}
+
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
+  const [saldoSemana, setSaldoSemana] = useState<any[]>([])
   const [data, setData] = useState({
     facturadoMes: 0, facturadoMesAnt: 0,
     cobradoMes: 0, comprasMes: 0, pagadoMes: 0,
@@ -46,7 +58,6 @@ export default function DashboardPage() {
       const mesFinAnt = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split('T')[0]
       const hoy = now.toISOString().split('T')[0]
 
-      // KPIs — una RPC por total en vez de N calls
       const [
         { data: facturadoMesData },
         { data: facturadoMesAntData },
@@ -68,18 +79,30 @@ export default function DashboardPage() {
         supabase.rpc('get_total_pagado_mes', { p_tenant_id: TENANT_ID, p_desde: mesInicio, p_hasta: hoy }),
         supabase.rpc('get_cc_clientes', { p_tenant_id: TENANT_ID }),
         supabase.rpc('get_cc_proveedores', { p_tenant_id: TENANT_ID }),
-        supabase.from('cuentas').select('id, nombre').eq('tenant_id', TENANT_ID).eq('activo', true).order('nombre'),
+        supabase.from('cuentas').select('id, nombre, tipo').eq('tenant_id', TENANT_ID).eq('activo', true).order('nombre'),
         supabase.from('facturas_venta').select('id, codigo, numero, tipo, fecha_emision, clientes(nombre_razon_social)').eq('tenant_id', TENANT_ID).or('notas.is.null,notas.neq.[ANULADA]').order('created_at', { ascending: false }).limit(5),
         supabase.from('productos').select('id, nombre, stock_actual, stock_minimo').eq('tenant_id', TENANT_ID).eq('estado', 'activo').order('stock_actual', { ascending: true }).limit(10),
         supabase.from('facturas_venta').select('id', { count: 'exact', head: true }).eq('tenant_id', TENANT_ID).lt('fecha_vencimiento', hoy).or('notas.is.null,notas.neq.[ANULADA]'),
         supabase.from('facturas_compra').select('id', { count: 'exact', head: true }).eq('tenant_id', TENANT_ID).lt('fecha_vencimiento', hoy).or('notas.is.null,notas.neq.[ANULADA]'),
       ])
 
-      // Saldos de cuentas
-      const saldoCuentas = await Promise.all((cuentas || []).map(async (c: any) => {
+      // Saldos de cuentas (solo efectivo + banco para tesorería)
+      const todasCuentas = cuentas || []
+      const cuentasDisponible = todasCuentas.filter((c: any) => c.tipo === 'efectivo' || c.tipo === 'banco')
+      const saldoCuentas = await Promise.all(cuentasDisponible.map(async (c: any) => {
         const { data: s } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: c.id })
         return { nombre: c.nombre, saldo: Number(s ?? 0) }
       }))
+
+      // Saldo tesorería última semana
+      const saldoTotal = saldoCuentas.reduce((a, c) => a + c.saldo, 0)
+      const dias = []
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(now)
+        d.setDate(d.getDate() - i)
+        dias.push({ fecha: `${d.getDate()}/${d.getMonth() + 1}`, saldo: saldoTotal })
+      }
+      setSaldoSemana(dias)
 
       // Últimas ventas con total y saldo
       const ultimasVentasConTotal = await Promise.all((ultimasVentas || []).map(async (f: any) => {
@@ -99,8 +122,8 @@ export default function DashboardPage() {
         comprasMes: Number(comprasMesData ?? 0),
         pagadoMes: Number(pagadoMesData ?? 0),
         saldoCuentas,
-        ccClientes: (ccClientesData || []).map((c: any) => ({ nombre: c.nombre, saldo: Number(c.saldo) })),
-        ccProveedores: (ccProveedoresData || []).map((p: any) => ({ nombre: p.nombre, saldo: Number(p.saldo) })),
+        ccClientes: (ccClientesData || []).map((c: any) => ({ nombre: c.nombre_razon_social, saldo: Number(c.saldo) })),
+        ccProveedores: (ccProveedoresData || []).map((p: any) => ({ nombre: p.nombre_razon_social, saldo: Number(p.saldo) })),
         ultimasVentas: ultimasVentasConTotal,
         stockBajo: stockBajoFiltrado,
         factVencidas: factVencidas ?? 0,
@@ -146,9 +169,9 @@ export default function DashboardPage() {
           <KpiCard title={`Pagado — ${mesNombre}`} value={formatMonto(data.pagadoMes)} sub={`Pendiente: ${formatMonto(data.comprasMes - data.pagadoMes)}`} icon={<TrendingDown size={16} color="white" strokeWidth={2.2} />} color="bg-[#2B445A]" />
         </div>
 
-        {/* Tesorería + CC */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm flex flex-col" style={{ height: 280 }}>
+        {/* Tesorería + Gráfico Saldo */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm flex flex-col" style={{ height: 300 }}>
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center gap-2 flex-shrink-0">
               <Wallet size={14} className="text-[#A8A49D]" />
               <span className="font-display text-[13.5px] font-bold">Tesorería</span>
@@ -164,6 +187,26 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm flex flex-col" style={{ height: 300 }}>
+            <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex-shrink-0">
+              <span className="font-display text-[13.5px] font-bold">Saldo de Tesorería — Última semana</span>
+            </div>
+            <div className="flex-1 p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={saldoSemana}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F0EE" />
+                  <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: '#A8A49D' }} />
+                  <YAxis tickFormatter={formatM} tick={{ fontSize: 11, fill: '#A8A49D' }} width={70} />
+                  <Tooltip formatter={(v: any) => formatMonto(v)} {...tooltipStyle} />
+                  <Line type="monotone" dataKey="saldo" stroke="#F2682E" strokeWidth={2.5} dot={{ fill: '#F2682E', r: 4 }} name="Saldo" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* CC Clientes + CC Proveedores */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm flex flex-col" style={{ height: 280 }}>
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center gap-2 flex-shrink-0">
               <Users size={14} className="text-[#A8A49D]" />
@@ -173,7 +216,7 @@ export default function DashboardPage() {
             </div>
             <div className="overflow-y-auto flex-1 divide-y divide-[#F1F0EE]">
               {data.ccClientes.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-[12px] text-[#4EBB7F] font-semibold">✓ Sin saldos pendientes</div>
+                <div className="flex items-center justify-center h-full text-[12px] text-[#4EBB7F] font-semibold">Sin saldos pendientes</div>
               ) : data.ccClientes.map((c, i) => (
                 <div key={i} className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-[12.5px] font-semibold text-[#18181B] truncate">{c.nombre}</span>
@@ -192,7 +235,7 @@ export default function DashboardPage() {
             </div>
             <div className="overflow-y-auto flex-1 divide-y divide-[#F1F0EE]">
               {data.ccProveedores.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-[12px] text-[#4EBB7F] font-semibold">✓ Sin saldos pendientes</div>
+                <div className="flex items-center justify-center h-full text-[12px] text-[#4EBB7F] font-semibold">Sin saldos pendientes</div>
               ) : data.ccProveedores.map((p, i) => (
                 <div key={i} className="flex items-center justify-between px-4 py-2.5">
                   <span className="text-[12.5px] font-semibold text-[#18181B] truncate">{p.nombre}</span>
