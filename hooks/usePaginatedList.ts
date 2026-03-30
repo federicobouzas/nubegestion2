@@ -10,6 +10,7 @@ interface Options {
   orderBy?: string
   orderAsc?: boolean
   filters?: Record<string, any>
+  rangeFilters?: { column: string; gte?: string; lte?: string }[]
   search?: { column: string; value: string }
   transform?: (rows: any[]) => Promise<any[]>
 }
@@ -42,6 +43,13 @@ export function usePaginatedList(opts: Options) {
         }
       }
 
+      if (opts.rangeFilters) {
+        for (const { column, gte, lte } of opts.rangeFilters) {
+          if (gte) q = q.gte(column, gte)
+          if (lte) q = q.lte(column, lte)
+        }
+      }
+
       if (opts.search?.value) {
         q = q.ilike(opts.search.column, `%${opts.search.value}%`)
       }
@@ -59,7 +67,7 @@ export function usePaginatedList(opts: Options) {
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, opts.search?.value, JSON.stringify(opts.filters)])
+  }, [page, pageSize, opts.search?.value, JSON.stringify(opts.filters), JSON.stringify(opts.rangeFilters)])
 
   useEffect(() => { load() }, [load])
 

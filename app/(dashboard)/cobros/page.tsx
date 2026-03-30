@@ -1,16 +1,27 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Eye } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
 import { formatMonto } from '@/lib/cobros'
+import { getClientes } from '@/lib/clientes'
 import { createClient } from '@/lib/supabase'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 
 export default function CobrosPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
+  const [filtroCliente, setFiltroCliente] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('')
+  const [clientes, setClientes] = useState<{ id: string; nombre_razon_social: string }[]>([])
+
+  useEffect(() => { getClientes({ estado: 'activo' }).then(d => setClientes(d || [])) }, [])
+
+  const dbFilters: Record<string, any> = {}
+  if (filtroCliente) dbFilters.cliente_id = filtroCliente
 
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
     table: 'recibos_cobro',
@@ -18,6 +29,8 @@ export default function CobrosPage() {
     orderBy: 'created_at',
     orderAsc: false,
     search: { column: 'codigo', value: search },
+    filters: dbFilters,
+    rangeFilters: [{ column: 'fecha', gte: fechaDesde || undefined, lte: fechaHasta || undefined }],
     transform: async (rows) => {
       const supabase = createClient()
       return Promise.all(rows.map(async (r: any) => {
@@ -56,6 +69,29 @@ export default function CobrosPage() {
         onPage={setPage}
         onPageSize={setPageSize}
       />
+      <div className="bg-white border-b border-[#E5E4E0] px-6 py-2.5 flex gap-3 items-center flex-shrink-0 flex-wrap">
+        <select value={filtroCliente} onChange={e => { setFiltroCliente(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
+          <option value="">Todos los clientes</option>
+          {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre_razon_social}</option>)}
+        </select>
+        <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
+          <option value="">Todos los estados</option>
+          <option value="cobrado">Cobrado</option>
+          <option value="anulado">Anulado</option>
+        </select>
+        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#A8A49D]">Fecha</span>
+        <input type="date" value={fechaDesde} onChange={e => { setFechaDesde(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
+        <span className="text-[11px] text-[#A8A49D]">—</span>
+        <input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
+        {(filtroCliente || filtroEstado || fechaDesde || fechaHasta) && (
+          <button onClick={() => { setFiltroCliente(''); setFiltroEstado(''); setFechaDesde(''); setFechaHasta(''); setPage(0) }}
+            className="text-[11px] text-[#F2682E] hover:text-[#C94E18] font-medium transition-colors">Limpiar</button>
+        )}
+      </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
           <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
@@ -70,9 +106,12 @@ export default function CobrosPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center text-[#A8A49D] text-sm">No hay cobros.</td></tr>
-                ) : data.map((r: any) => {
+                {(() => {
+                  const displayData = filtroEstado
+                    ? data.filter((r: any) => filtroEstado === 'anulado' ? r.notas === '[ANULADO]' : r.notas !== '[ANULADO]')
+                    : data
+                  if (displayData.length === 0) return <tr><td colSpan={7} className="px-4 py-10 text-center text-[#A8A49D] text-sm">No hay cobros.</td></tr>
+                  return displayData.map((r: any) => {
                   const anulado = r.notas === '[ANULADO]'
                   return (
                     <tr key={r.id} className="border-b border-[#F1F0EE] last:border-0 hover:bg-[#FEF0EA] transition-colors group">
@@ -94,7 +133,8 @@ export default function CobrosPage() {
                       </td>
                     </tr>
                   )
-                })}
+                  })
+                })()}
               </tbody>
             </table>
           </div>

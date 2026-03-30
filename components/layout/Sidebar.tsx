@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Settings, Ticket, Cloud, Wallet, Tag, FolderOpen } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Cloud, Wallet, FolderOpen } from 'lucide-react'
 import { LogOut } from 'lucide-react'
 import { signOut } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
@@ -17,6 +17,7 @@ const nav = [
     { label: 'Productos', href: '/productos', icon: Package },
     { label: 'Servicios', href: '/servicios', icon: Wrench },
     { label: 'Listas de Precios', href: '/listas-precios', icon: Tags },
+    { label: 'Categorías de Gastos', href: '/categorias-gastos', icon: FolderOpen },
   ]},
   { section: 'Ingresos', items: [
     { label: 'Ventas', href: '/ventas', icon: FileText },
@@ -37,11 +38,6 @@ const nav = [
     { label: 'Cuentas', href: '/tesoreria/cuentas', icon: Wallet },
     { label: 'Movimientos', href: '/tesoreria/movimientos', icon: FileText },
     { label: 'Historial', href: '/tesoreria/historial', icon: History },
-  ]},
-  { section: 'Sistema', items: [
-    { href: '/categorias-gastos', label: 'Categorías de Gastos', icon: FolderOpen },
-    { label: 'Configuración', href: '/configuracion', icon: Settings },
-    { label: 'Soporte', href: '/soporte', icon: Ticket },
   ]},
 ]
 

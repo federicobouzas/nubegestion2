@@ -1,15 +1,27 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
-import { formatMonto, deleteOtroIngreso } from '@/lib/otros-ingresos'
+import { formatMonto, deleteOtroIngreso, TIPOS_INGRESO } from '@/lib/otros-ingresos'
+import { getCuentas } from '@/lib/cuentas'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 
 export default function OtrosIngresosPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [filtroTipo, setFiltroTipo] = useState('')
+  const [filtroCuenta, setFiltroCuenta] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
+  const [cuentas, setCuentas] = useState<{ id: string; nombre: string }[]>([])
+
+  useEffect(() => { getCuentas({ activo: true }).then(d => setCuentas(d || [])) }, [])
+
+  const filters: Record<string, any> = {}
+  if (filtroTipo) filters.tipo = filtroTipo
+  if (filtroCuenta) filters.cuenta_id = filtroCuenta
 
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages, reload } = usePaginatedList({
     table: 'otros_ingresos',
@@ -17,6 +29,8 @@ export default function OtrosIngresosPage() {
     orderBy: 'created_at',
     orderAsc: false,
     search: { column: 'descripcion', value: search },
+    filters,
+    rangeFilters: [{ column: 'fecha', gte: fechaDesde || undefined, lte: fechaHasta || undefined }],
   })
 
   function handleSearch(e: React.FormEvent) {
@@ -54,6 +68,31 @@ export default function OtrosIngresosPage() {
         onPage={setPage}
         onPageSize={setPageSize}
       />
+      <div className="bg-white border-b border-[#E5E4E0] px-6 py-2.5 flex gap-3 items-center flex-shrink-0">
+        <select
+          value={filtroTipo}
+          onChange={e => { setFiltroTipo(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]"
+        >
+          <option value="">Todos los tipos</option>
+          {TIPOS_INGRESO.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        <select value={filtroCuenta} onChange={e => { setFiltroCuenta(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
+          <option value="">Todas las cuentas</option>
+          {cuentas.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
+        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#A8A49D]">Fecha</span>
+        <input type="date" value={fechaDesde} onChange={e => { setFechaDesde(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
+        <span className="text-[11px] text-[#A8A49D]">—</span>
+        <input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
+        {(filtroTipo || filtroCuenta || fechaDesde || fechaHasta) && (
+          <button onClick={() => { setFiltroTipo(''); setFiltroCuenta(''); setFechaDesde(''); setFechaHasta(''); setPage(0) }}
+            className="text-[11px] text-[#F2682E] hover:text-[#C94E18] font-medium transition-colors">Limpiar</button>
+        )}
+      </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
           <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>

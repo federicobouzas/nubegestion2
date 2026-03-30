@@ -5,7 +5,14 @@
       "Bash(mkdir -p \"/Users/federico/nubegestion/app/\\(dashboard\\)/soporte/[id]\")",
       "Bash(touch \"/Users/federico/nubegestion/app/\\(dashboard\\)/soporte/[id]/page.tsx\")",
       "Bash(xargs sed:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(curl -s \"https://github.com/federicobouzas/gestion-pymes/tree/master/app/View/Guias\")",
+      "Bash(gh api:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(ls /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/guias/)",
+      "Bash(npx tsc:*)",
+      "Bash(ls /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/guias/[slug]/)"
     ]
   }
 }

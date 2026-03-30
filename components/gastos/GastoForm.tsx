@@ -22,6 +22,10 @@ export default function GastoFormComp({ initialData, onSubmit, submitLabel = 'Gu
   const [cuentas, setCuentas] = useState<any[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showModal, setShowModal] = useState(false)
+  const [selectedTipo, setSelectedTipo] = useState(() => {
+    if (!initialData?.categoria_id) return ''
+    return '' // se resuelve después de cargar categorias
+  })
 
   const today = new Date().toISOString().split('T')[0]
   const [form, setForm] = useState<GastoForm>({
@@ -34,7 +38,13 @@ export default function GastoFormComp({ initialData, onSubmit, submitLabel = 'Gu
   })
 
   useEffect(() => {
-    getCategoriasGasto().then(d => setCategorias(d || []))
+    getCategoriasGasto().then(d => {
+      setCategorias(d || [])
+      if (initialData?.categoria_id && d) {
+        const cat = d.find((c: CategoriaGasto) => c.id === initialData.categoria_id)
+        if (cat) setSelectedTipo(cat.tipo)
+      }
+    })
     getCuentas().then(d => setCuentas(d || []))
   }, [])
 
@@ -51,12 +61,8 @@ export default function GastoFormComp({ initialData, onSubmit, submitLabel = 'Gu
 
   const total = form.metodos.reduce((a, m) => a + Number(m.monto), 0)
 
-  // Agrupar categorías por tipo para el selector
-  const categoriasAgrupadas = categorias.reduce((acc, c) => {
-    if (!acc[c.tipo]) acc[c.tipo] = []
-    acc[c.tipo].push(c)
-    return acc
-  }, {} as Record<string, CategoriaGasto[]>)
+  const tiposDisponibles = Array.from(new Set(categorias.map(c => c.tipo)))
+  const categoriasDeTipo = selectedTipo ? categorias.filter(c => c.tipo === selectedTipo) : []
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -93,24 +99,29 @@ export default function GastoFormComp({ initialData, onSubmit, submitLabel = 'Gu
         <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
           <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3"><span className="font-display text-[13.5px] font-bold">Datos del gasto</span></div>
           <div className="p-4 grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <FieldWrapper label="Categoría" required error={errors.categoria_id}>
-                <select className={inputCls(errors.categoria_id)} value={form.categoria_id} onChange={e => set('categoria_id', e.target.value)}>
-                  <option value="">Seleccionar categoría...</option>
-                  {Object.entries(categoriasAgrupadas).map(([tipo, cats]) => (
-                    <optgroup key={tipo} label={tipo}>
-                      {cats.map(c => <option key={c.id} value={c.id}>{c.descripcion}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
-              </FieldWrapper>
-            </div>
+            <FieldWrapper label="Tipo de gasto" required>
+              <select className={inputCls(errors.categoria_id)} value={selectedTipo} onChange={e => {
+                setSelectedTipo(e.target.value)
+                set('categoria_id', '')
+              }}>
+                <option value="">Seleccionar tipo...</option>
+                {tiposDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </FieldWrapper>
+            <FieldWrapper label="Categoría" required error={errors.categoria_id}>
+              <select className={inputCls(errors.categoria_id)} value={form.categoria_id} onChange={e => set('categoria_id', e.target.value)} disabled={!selectedTipo}>
+                <option value="">{selectedTipo ? 'Seleccionar categoría...' : '— Primero elegí un tipo —'}</option>
+                {categoriasDeTipo.map(c => <option key={c.id} value={c.id}>{c.descripcion}</option>)}
+              </select>
+            </FieldWrapper>
             <FieldWrapper label="Fecha de pago" required error={errors.fecha_pago}>
               <input className={inputCls(errors.fecha_pago)} type="date" value={form.fecha_pago} onChange={e => set('fecha_pago', e.target.value)} />
             </FieldWrapper>
-            <FieldWrapper label="Descripción" required error={errors.descripcion}>
-              <input className={inputCls()} value={form.descripcion} onChange={e => set('descripcion', e.target.value)} placeholder="Descripción opcional..." />
-            </FieldWrapper>
+            <div className="col-span-2">
+              <FieldWrapper label="Descripción" required error={errors.descripcion}>
+                <input className={inputCls()} value={form.descripcion} onChange={e => set('descripcion', e.target.value)} placeholder="Descripción opcional..." />
+              </FieldWrapper>
+            </div>
             <FieldWrapper label="Nro. de factura">
               <input className={inputCls()} value={form.numero_factura} onChange={e => set('numero_factura', e.target.value)} placeholder="Opcional" />
             </FieldWrapper>

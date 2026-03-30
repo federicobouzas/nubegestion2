@@ -22,6 +22,7 @@ export default function CategoriaGastoFormComp({ initialData, onSubmit, submitLa
   const [form, setForm] = useState<CategoriaGastoForm>({
     tipo: initialData?.tipo || '',
     descripcion: initialData?.descripcion || '',
+    estado: initialData?.estado || 'activo',
   })
 
   function set(k: keyof CategoriaGastoForm, v: string) {
@@ -47,7 +48,7 @@ export default function CategoriaGastoFormComp({ initialData, onSubmit, submitLa
         <FormErrorBanner show={Object.keys(errors).length > 0} />
         <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
           <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3"><span className="font-display text-[13.5px] font-bold">Datos de la categoría</span></div>
-          <div className="p-4 grid grid-cols-2 gap-3">
+          <div className="p-4 grid grid-cols-3 gap-3">
             <FieldWrapper label="Tipo" required error={errors.tipo}>
               <select className={inputCls(errors.tipo)} value={form.tipo} onChange={e => set('tipo', e.target.value)}>
                 <option value="">Seleccionar tipo...</option>
@@ -56,6 +57,12 @@ export default function CategoriaGastoFormComp({ initialData, onSubmit, submitLa
             </FieldWrapper>
             <FieldWrapper label="Descripción" required error={errors.descripcion}>
               <input className={inputCls(errors.descripcion)} value={form.descripcion} onChange={e => set('descripcion', e.target.value)} placeholder="Ej: Sueldos, AFIP, Alquiler..." />
+            </FieldWrapper>
+            <FieldWrapper label="Estado" required>
+              <select className={inputCls()} value={form.estado} onChange={e => set('estado', e.target.value)}>
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
             </FieldWrapper>
           </div>
         </div>

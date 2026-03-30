@@ -3,12 +3,14 @@ export interface CategoriaGasto {
   tenant_id: string
   tipo: string
   descripcion: string
+  estado: string
   created_at: string
 }
 
 export interface CategoriaGastoForm {
   tipo: string
   descripcion: string
+  estado: string
 }
 
 export interface GastoMetodo {

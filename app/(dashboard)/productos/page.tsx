@@ -11,6 +11,10 @@ import { pluralize } from '@/lib/utils'
 export default function ProductosPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('')
+
+  const filters: Record<string, any> = {}
+  if (filtroEstado) filters.estado = filtroEstado
 
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
     table: 'productos',
@@ -18,6 +22,7 @@ export default function ProductosPage() {
     orderBy: 'nombre',
     orderAsc: true,
     search: { column: 'nombre', value: search },
+    filters,
   })
 
   function handleSearch(e: React.FormEvent) {
@@ -49,6 +54,17 @@ export default function ProductosPage() {
         onPage={setPage}
         onPageSize={setPageSize}
       />
+      <div className="bg-white border-b border-[#E5E4E0] px-6 py-2.5 flex gap-3 flex-shrink-0">
+        <select
+          value={filtroEstado}
+          onChange={e => { setFiltroEstado(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]"
+        >
+          <option value="">Todos los estados</option>
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
           <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>

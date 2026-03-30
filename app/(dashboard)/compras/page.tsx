@@ -1,10 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Eye } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
 import { calcularEstadoCompra, formatMonto } from '@/lib/compras'
+import { getProveedores } from '@/lib/proveedores'
 import { createClient } from '@/lib/supabase'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 
@@ -18,6 +19,16 @@ const estadoBadge = (estado: string) => {
 export default function ComprasPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
+  const [filtroProveedor, setFiltroProveedor] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('')
+  const [proveedores, setProveedores] = useState<{ id: string; nombre_razon_social: string }[]>([])
+
+  useEffect(() => { getProveedores({ estado: 'activo' }).then(d => setProveedores(d || [])) }, [])
+
+  const dbFilters: Record<string, any> = {}
+  if (filtroProveedor) dbFilters.proveedor_id = filtroProveedor
 
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
     table: 'facturas_compra',
@@ -25,6 +36,8 @@ export default function ComprasPage() {
     orderBy: 'created_at',
     orderAsc: false,
     search: { column: 'codigo', value: search },
+    filters: dbFilters,
+    rangeFilters: [{ column: 'fecha_emision', gte: fechaDesde || undefined, lte: fechaHasta || undefined }],
     transform: async (rows) => {
       const supabase = createClient()
       return Promise.all(rows.map(async (fc: any) => {
@@ -64,6 +77,31 @@ export default function ComprasPage() {
         onPage={setPage}
         onPageSize={setPageSize}
       />
+      <div className="bg-white border-b border-[#E5E4E0] px-6 py-2.5 flex gap-3 items-center flex-shrink-0 flex-wrap">
+        <select value={filtroProveedor} onChange={e => { setFiltroProveedor(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
+          <option value="">Todos los proveedores</option>
+          {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre_razon_social}</option>)}
+        </select>
+        <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
+          <option value="">Todos los estados</option>
+          <option value="pagada">Pagada</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="vencida">Vencida</option>
+          <option value="anulada">Anulada</option>
+        </select>
+        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#A8A49D]">Fecha</span>
+        <input type="date" value={fechaDesde} onChange={e => { setFechaDesde(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
+        <span className="text-[11px] text-[#A8A49D]">—</span>
+        <input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
+        {(filtroProveedor || filtroEstado || fechaDesde || fechaHasta) && (
+          <button onClick={() => { setFiltroProveedor(''); setFiltroEstado(''); setFechaDesde(''); setFechaHasta(''); setPage(0) }}
+            className="text-[11px] text-[#F2682E] hover:text-[#C94E18] font-medium transition-colors">Limpiar</button>
+        )}
+      </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
           <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
@@ -78,9 +116,15 @@ export default function ComprasPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.length === 0 ? (
-                  <tr><td colSpan={9} className="px-4 py-10 text-center text-[#A8A49D] text-sm">No hay facturas de compra.</td></tr>
-                ) : data.map((f: any) => {
+                {(() => {
+                  const displayData = filtroEstado
+                    ? data.filter((f: any) => {
+                        if (f.notas === '[ANULADA]') return filtroEstado === 'anulada'
+                        return calcularEstadoCompra(f.saldo_pendiente, f.fecha_vencimiento) === filtroEstado
+                      })
+                    : data
+                  if (displayData.length === 0) return <tr><td colSpan={9} className="px-4 py-10 text-center text-[#A8A49D] text-sm">No hay facturas de compra.</td></tr>
+                  return displayData.map((f: any) => {
                   const estado = calcularEstadoCompra(f.saldo_pendiente, f.fecha_vencimiento)
                   const anulada = f.notas === '[ANULADA]'
                   return (
@@ -100,7 +144,8 @@ export default function ComprasPage() {
                       </td>
                     </tr>
                   )
-                })}
+                  })
+                })()}
               </tbody>
             </table>
           </div>

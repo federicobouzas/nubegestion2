@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Save, X } from 'lucide-react'
-import { getCuentas } from '@/lib/cobros'
+import { getCuentas } from '@/lib/cuentas'
 import { TIPOS_INGRESO, formatMonto } from '@/lib/otros-ingresos'
 import FormErrorBanner from '@/components/shared/FormErrorBanner'
 import FormErrorModal from '@/components/shared/FormErrorModal'

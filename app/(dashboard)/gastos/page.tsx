@@ -1,16 +1,35 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Eye } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
-import { formatMonto } from '@/lib/gastos'
+import { formatMonto, getCategoriasGasto } from '@/lib/gastos'
 import { createClient } from '@/lib/supabase'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 
 export default function GastosPage() {
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
+  const [filtroTipo, setFiltroTipo] = useState('')
+  const [filtroCategoria, setFiltroCategoria] = useState('')
+  const [categorias, setCategorias] = useState<{ id: string; tipo: string; descripcion: string }[]>([])
+
+  useEffect(() => { getCategoriasGasto().then(d => setCategorias(d || [])) }, [])
+
+  const tiposDisponibles = Array.from(new Set(categorias.map(c => c.tipo)))
+  const categoriasFiltradas = filtroTipo ? categorias.filter(c => c.tipo === filtroTipo) : []
+
+  function handleTipo(tipo: string) {
+    setFiltroTipo(tipo)
+    setFiltroCategoria('')
+    setPage(0)
+  }
+
+  const dbFilters: Record<string, any> = {}
+  if (filtroCategoria) dbFilters.categoria_id = filtroCategoria
 
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
     table: 'gastos',
@@ -18,6 +37,8 @@ export default function GastosPage() {
     orderBy: 'created_at',
     orderAsc: false,
     search: { column: 'codigo', value: search },
+    filters: dbFilters,
+    rangeFilters: [{ column: 'fecha_pago', gte: fechaDesde || undefined, lte: fechaHasta || undefined }],
     transform: async (rows) => {
       const supabase = createClient()
       return Promise.all(rows.map(async (g: any) => {
@@ -56,6 +77,30 @@ export default function GastosPage() {
         onPage={setPage}
         onPageSize={setPageSize}
       />
+      <div className="bg-white border-b border-[#E5E4E0] px-6 py-2.5 flex gap-3 items-center flex-shrink-0 flex-wrap">
+        <select value={filtroTipo} onChange={e => handleTipo(e.target.value)}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
+          <option value="">Todos los tipos</option>
+          {tiposDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+        {filtroTipo && (
+          <select value={filtroCategoria} onChange={e => { setFiltroCategoria(e.target.value); setPage(0) }}
+            className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
+            <option value="">Todas las categorías</option>
+            {categoriasFiltradas.map(c => <option key={c.id} value={c.id}>{c.descripcion}</option>)}
+          </select>
+        )}
+        <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#A8A49D]">Fecha</span>
+        <input type="date" value={fechaDesde} onChange={e => { setFechaDesde(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
+        <span className="text-[11px] text-[#A8A49D]">—</span>
+        <input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); setPage(0) }}
+          className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
+        {(filtroTipo || filtroCategoria || fechaDesde || fechaHasta) && (
+          <button onClick={() => { setFiltroTipo(''); setFiltroCategoria(''); setFechaDesde(''); setFechaHasta(''); setPage(0) }}
+            className="text-[11px] text-[#F2682E] hover:text-[#C94E18] font-medium transition-colors">Limpiar</button>
+        )}
+      </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
           <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
@@ -64,7 +109,7 @@ export default function GastosPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-[#E5E4E0] bg-[#F9F9F8]">
-                  {['Código', 'Fecha', 'Categoría', 'Descripción', 'Nro. Factura', 'Total', 'Estado', ''].map((h, i) => (
+                  {['Código', 'Fecha', 'Categoría', 'Descripción', 'Total', 'Estado', ''].map((h, i) => (
                     <th key={i} className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-2.5 text-left font-medium">{h}</th>
                   ))}
                 </tr>
@@ -80,7 +125,6 @@ export default function GastosPage() {
                       <td className="px-4 py-3 font-mono text-[11.5px] text-[#6B6762]">{new Date(g.fecha_pago).toLocaleDateString('es-AR')}</td>
                       <td className="px-4 py-3 text-[12px] text-[#6B6762]">{g.categorias_gastos ? `${g.categorias_gastos.tipo} > ${g.categorias_gastos.descripcion}` : '—'}</td>
                       <td className="px-4 py-3 text-[12px] text-[#6B6762]">{g.descripcion || '—'}</td>
-                      <td className="px-4 py-3 font-mono text-[11.5px] text-[#6B6762]">{g.numero_factura || '—'}</td>
                       <td className="px-4 py-3 font-mono text-[12px] font-bold text-[#18181B]">{formatMonto(g.total)}</td>
                       <td className="px-4 py-3">
                         {anulado
