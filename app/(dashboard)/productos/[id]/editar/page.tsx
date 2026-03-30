@@ -27,7 +27,7 @@ export default function EditarProductoPage() {
   useEffect(() => {
     Promise.all([
       getProducto(id),
-      getListasPrecios(),
+      getListasPrecios({estado:'activo'}),
       getPreciosProducto(id),
     ])
       .then(([producto, listasData, preciosData]) => {

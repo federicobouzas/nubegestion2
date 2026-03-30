@@ -20,18 +20,19 @@
 
 import { createClient } from './supabase'
 import { getTenantId } from '@/lib/tenant'
+import { applyFilters } from '@/lib/query'
 import type { ListaPrecioForm, ProductoConPrecio } from '@/types/listas-precios'
 
 // ─── Listas de Precios ────────────────────────────────────────
 
-export async function getListasPrecios() {
+
+export async function getListasPrecios({ search, ...filters }: Record<string, any> = {}) {
   const supabase = createClient()
   const tenantId = await getTenantId()
-  const { data, error } = await supabase
-    .from('listas_precios')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .order('nombre')
+  let q = supabase.from('listas_precios').select('*').eq('tenant_id', tenantId).order('nombre')
+  q = applyFilters(q, filters)
+  if (search) q = q.ilike('nombre_razon_social', `%${search}%`)
+  const { data, error } = await q
   if (error) throw error
   return data
 }

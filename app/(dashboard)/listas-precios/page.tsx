@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react'
+import Badge from '@/components/shared/Badge'
 import Topbar from '@/components/shared/Topbar'
 import { getListasPrecios, deleteListaPrecio } from '@/lib/listas-precios'
 import type { ListaPrecio } from '@/types/listas-precios'
@@ -32,7 +33,7 @@ export default function ListasPreciosPage() {
               href="/listas-precios/actualizar"
               className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3.5 py-2 rounded-[9px] border border-[#E5E4E0] bg-white text-[#6B6762] hover:border-[#2B445A] hover:text-[#2B445A] transition-colors"
             >
-              <RefreshCw size={13} strokeWidth={2.2} /> Actualizar masivo
+              <RefreshCw size={13} strokeWidth={2.2} /> Actualización masiva
             </Link>
             <Link
               href="/listas-precios/nueva"
@@ -62,7 +63,7 @@ export default function ListasPreciosPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-[#E5E4E0] bg-[#F9F9F8]">
-                  {['Nombre', 'Estado', 'Creada', ''].map((h, i) => (
+                  {['Nombre', 'Estado', ''].map((h, i) => (
                     <th key={i} className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-2.5 text-left font-medium">{h}</th>
                   ))}
                 </tr>
@@ -71,15 +72,7 @@ export default function ListasPreciosPage() {
                 {listas.map(l => (
                   <tr key={l.id} className="border-b border-[#F1F0EE] last:border-0 hover:bg-[#FEF0EA] transition-colors group">
                     <td className="px-4 py-3 text-[13px] font-semibold text-[#18181B]">{l.nombre}</td>
-                    <td className="px-4 py-3">
-                      {l.estado === 'activo'
-                        ? <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#E8F7EF] text-[#1A5C38]"><span className="w-1.5 h-1.5 rounded-full bg-[#4EBB7F]" />Activa</span>
-                        : <span className="text-[11px] font-bold bg-[#F1F0EE] text-[#6B6762] px-2 py-0.5 rounded-full">Inactiva</span>
-                      }
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11.5px] text-[#6B6762]">
-                      {new Date(l.created_at).toLocaleDateString('es-AR')}
-                    </td>
+                    <td className="px-4 py-3"><Badge variant={l.estado === 'activo' ? 'success' : 'danger'}>{l.estado === 'activo' ? 'Activa' : 'Inactiva'}</Badge></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">
                         <Link
