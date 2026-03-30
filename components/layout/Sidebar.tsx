@@ -1,9 +1,10 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Cloud, Wallet, FolderOpen } from 'lucide-react'
-import { LogOut } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Cloud, Wallet, FolderOpen, LogOut } from 'lucide-react'
 import { signOut } from '@/lib/auth'
+import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 const nav = [
@@ -44,6 +45,22 @@ const nav = [
 export default function Sidebar() {
   const router = useRouter()
   const pathname = usePathname()
+  const [nombre, setNombre] = useState('')
+  const [empresa, setEmpresa] = useState('')
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data: { user } }) => {
+      if (user?.user_metadata) {
+        setNombre(user.user_metadata.nombre || user.email || '')
+        setEmpresa(user.user_metadata.empresa || '')
+      }
+    })
+  }, [])
+
+  const initials = nombre
+    ? nombre.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+    : '?'
+
   return (
     <aside className="w-[228px] bg-[#2B445A] flex flex-col flex-shrink-0 h-full overflow-y-auto">
       <div className="bg-[#1E3247] px-4 py-3.5 flex items-center gap-2.5 border-b border-white/10 flex-shrink-0">
@@ -74,10 +91,10 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="border-t border-white/10 px-[13px] py-[11px] flex items-center gap-2 flex-shrink-0">
-        <div className="w-[26px] h-[26px] bg-[#7C3AED] rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">AD</div>
+        <div className="w-[26px] h-[26px] bg-[#7C3AED] rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0">{initials}</div>
         <div className="flex-1 min-w-0">
-          <div className="text-[11.5px] font-semibold text-white/50 truncate">Admin Demo</div>
-          <div className="font-mono text-[8.5px] text-white/20">Admin</div>
+          <div className="text-[11.5px] font-semibold text-white/50 truncate">{nombre}</div>
+          <div className="font-mono text-[8.5px] text-white/20 truncate">{empresa}</div>
         </div>
         <button
           onClick={async () => { await signOut(); router.push('/login'); router.refresh() }}
