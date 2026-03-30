@@ -1,20 +1,20 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Search, X } from 'lucide-react'
-import type { Producto } from '@/types/productos'
+import type { ItemCatalogo } from '@/types/servicios'
 
 interface Props {
-  productos: Producto[]
+  items: ItemCatalogo[]
   value: string
   label?: string
   error?: string
-  onSelect: (producto: Producto | null) => void
+  onSelect: (item: ItemCatalogo | null) => void
   placeholder?: string
 }
 
 const MIN_CHARS = 2
 
-export default function ProductoAutocomplete({ productos, value, label, error, onSelect, placeholder = 'Buscar producto...' }: Props) {
+export default function ProductoAutocomplete({ items, value, label, error, onSelect, placeholder = 'Buscar producto o servicio...' }: Props) {
   const [query, setQuery] = useState(label || '')
   const [open, setOpen] = useState(false)
   const [highlighted, setHighlighted] = useState(0)
@@ -25,15 +25,14 @@ export default function ProductoAutocomplete({ productos, value, label, error, o
   useEffect(() => { setQuery(label || '') }, [label])
 
   const filtered = query.trim().length >= MIN_CHARS
-    ? productos.filter(p =>
+    ? items.filter(p =>
         p.nombre.toLowerCase().includes(query.toLowerCase()) ||
         (p.codigo && p.codigo.toLowerCase().includes(query.toLowerCase()))
-      ).slice(0, 8)
+      ).slice(0, 10)
     : []
 
   const shouldOpen = open && query.trim().length >= MIN_CHARS
 
-  // Calcular posición del dropdown relativa a la ventana
   const updatePos = useCallback(() => {
     if (!containerRef.current) return
     const rect = containerRef.current.getBoundingClientRect()
@@ -58,7 +57,7 @@ export default function ProductoAutocomplete({ productos, value, label, error, o
     }
   }, [shouldOpen, updatePos])
 
-  function handleSelect(p: Producto) {
+  function handleSelect(p: ItemCatalogo) {
     setQuery(p.nombre)
     setOpen(false)
     onSelect(p)
@@ -112,7 +111,6 @@ export default function ProductoAutocomplete({ productos, value, label, error, o
         )}
       </div>
 
-      {/* Dropdown fixed — fuera del flujo de la tabla */}
       {shouldOpen && dropdownPos && (
         <div
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
@@ -127,22 +125,28 @@ export default function ProductoAutocomplete({ productos, value, label, error, o
               className={`w-full text-left px-3 py-2 flex items-center justify-between gap-3 transition-colors ${i === highlighted ? 'bg-[#FEF0EA]' : 'hover:bg-[#F9F9F8]'}`}
             >
               <div className="flex flex-col min-w-0">
-                <span className="text-[12.5px] font-semibold text-[#18181B] truncate">{p.nombre}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[12.5px] font-semibold text-[#18181B] truncate">{p.nombre}</span>
+                  {p.tipo === 'servicio' && (
+                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#EFF6FF] text-[#1D4ED8] flex-shrink-0">SERV</span>
+                  )}
+                </div>
                 {p.codigo && <span className="text-[10px] text-[#A8A49D] font-mono">{p.codigo}</span>}
               </div>
               <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
-                <span className="font-mono text-[12px] font-bold text-[#18181B]">
-                  ${p.precio_venta.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </span>
-                <span className={`text-[10px] font-mono font-medium ${
-                  p.stock_actual <= 0
-                    ? 'text-[#EE3232]'
-                    : p.stock_actual <= (p.stock_minimo || 0)
-                    ? 'text-[#B45309]'
-                    : 'text-[#1A5C38]'
-                }`}>
-                  Stock: {p.stock_actual} {p.unidad_medida}
-                </span>
+                {p.tipo === 'producto' ? (
+                  <span className={`text-[10px] font-mono font-medium ${
+                    (p.stock_actual ?? 0) <= 0
+                      ? 'text-[#EE3232]'
+                      : (p.stock_actual ?? 0) <= (p.stock_minimo ?? 0)
+                      ? 'text-[#B45309]'
+                      : 'text-[#1A5C38]'
+                  }`}>
+                    Stock: {p.stock_actual} {p.unidad_medida}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono text-[#6B6762]">IVA {p.iva}%</span>
+                )}
               </div>
             </button>
           )) : (

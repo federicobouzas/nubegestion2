@@ -68,7 +68,7 @@ export default function EditarProductoPage() {
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3"><span className="font-display text-[13.5px] font-bold">Datos del producto</span></div>
             <div className="p-4 grid grid-cols-2 gap-3">
               <Field label="Código"><input className={inp} value={form.codigo || ''} onChange={e => set('codigo', e.target.value)} placeholder="SKU-001" /></Field>
-              <Field label="Nombre" required><input className={inp} value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre del producto" /></Field>
+              <Field label="Nombre"><input className={inp} value={form.nombre} onChange={e => set('nombre', e.target.value)} placeholder="Nombre del producto" /></Field>
               <div className="col-span-2"><Field label="Descripción"><textarea className={inp} rows={2} value={form.descripcion || ''} onChange={e => set('descripcion', e.target.value)} placeholder="Descripción opcional" /></Field></div>
               <Field label="Unidad de medida"><input className={inp} value={form.unidad_medida} onChange={e => set('unidad_medida', e.target.value)} placeholder="unidad, kg, m..." /></Field>
               <Field label="IVA">

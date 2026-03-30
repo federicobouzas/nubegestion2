@@ -50,7 +50,7 @@ export default function ClientesTable({ clientes, onDelete }: Props) {
                 {cliente.email || cliente.telefono || '—'}
               </td>
               <td className="px-4 py-3">
-                <Badge variant={cliente.estado === 'activo' ? 'success' : 'gray'} label={cliente.estado === 'activo' ? 'Activo' : 'Inactivo'} />
+                <Badge variant={cliente.estado === 'activo' ? 'success' : 'gray'}>{cliente.estado === 'activo' ? 'Activo' : 'Inactivo'}</Badge>
               </td>
               <td className="px-4 py-3">
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

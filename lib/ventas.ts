@@ -99,12 +99,13 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
   if (error) throw error
 
   if (form.items.length > 0) {
+    // Validar stock solo para productos
     for (const item of form.items) {
-      if (!item.item_id) continue
+      if (item.tipo_item !== 'producto' || !item.producto_id) continue
       const { data: prod } = await supabase
         .from('productos')
         .select('nombre, stock_actual')
-        .eq('id', item.item_id)
+        .eq('id', item.producto_id)
         .eq('tenant_id', tenantId)
         .single()
       if (!prod) continue
@@ -119,19 +120,20 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
     )
     if (itemsError) throw itemsError
 
+    // Descontar stock solo para productos
     for (const item of form.items) {
-      if (!item.item_id) continue
+      if (item.tipo_item !== 'producto' || !item.producto_id) continue
       const { data: prod } = await supabase
         .from('productos')
         .select('stock_actual')
-        .eq('id', item.item_id)
+        .eq('id', item.producto_id)
         .eq('tenant_id', tenantId)
         .single()
       if (!prod) continue
       await supabase
         .from('productos')
         .update({ stock_actual: Math.max(0, prod.stock_actual - item.cantidad) })
-        .eq('id', item.item_id)
+        .eq('id', item.producto_id)
         .eq('tenant_id', tenantId)
     }
   }
@@ -173,18 +175,18 @@ export async function anularFacturaVenta(id: string) {
     .eq('tenant_id', tenantId)
   if (items) {
     for (const item of items) {
-      if (!item.item_id) continue
+      if (item.tipo_item !== 'producto' || !item.producto_id) continue
       const { data: prod } = await supabase
         .from('productos')
         .select('stock_actual')
-        .eq('id', item.item_id)
+        .eq('id', item.producto_id)
         .eq('tenant_id', tenantId)
         .single()
       if (!prod) continue
       await supabase
         .from('productos')
         .update({ stock_actual: (prod.stock_actual || 0) + item.cantidad })
-        .eq('id', item.item_id)
+        .eq('id', item.producto_id)
         .eq('tenant_id', tenantId)
     }
   }

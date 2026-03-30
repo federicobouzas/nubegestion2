@@ -28,7 +28,7 @@ export default function ContactoTable({ rows, basePath, emptyMessage, onDelete }
                 <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-[5px] ${row.tipo_factura === 'A' ? 'bg-[#DBEAFE] text-[#1E3A8A]' : row.tipo_factura === 'B' ? 'bg-[#E8F7EF] text-[#1A5C38]' : 'bg-[#F0EBFB] text-[#3D1F8A]'}`}>{row.tipo_factura}</span>
               </td>
               <td className="px-4 py-3 text-[12px] text-[#6B6762]">{row.email || row.telefono || '—'}</td>
-              <td className="px-4 py-3"><Badge variant={row.estado === 'activo' ? 'success' : 'gray'} label={row.estado === 'activo' ? 'Activo' : 'Inactivo'} /></td>
+              <td className="px-4 py-3"><Badge variant={row.estado === 'activo' ? 'success' : 'gray'}>{row.estado === 'activo' ? 'Activo' : 'Inactivo'}</Badge></td>
               <td className="px-4 py-3">
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Link href={`${basePath}/${row.id}`} className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#2B445A] hover:text-[#2B445A] transition-colors"><Eye size={13} strokeWidth={2} /></Link>

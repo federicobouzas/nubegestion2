@@ -5,7 +5,8 @@ export type TipoItem = 'producto' | 'servicio'
 export interface ItemFacturaVenta {
   id?: string
   tipo_item: TipoItem
-  item_id: string
+  producto_id: string | null
+  servicio_id: string | null
   descripcion: string
   cantidad: number
   precio_unitario: number

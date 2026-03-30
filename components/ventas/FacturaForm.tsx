@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Save, X } from 'lucide-react'
 import { getClientes } from '@/lib/clientes'
 import { getProductos } from '@/lib/productos'
+import { getServicios } from '@/lib/servicios'
 import { formatMonto } from '@/lib/ventas'
 import FormErrorBanner from '@/components/shared/FormErrorBanner'
 import FormErrorModal from '@/components/shared/FormErrorModal'
@@ -13,6 +14,7 @@ import { pluralize } from '@/lib/utils'
 import type { FacturaVentaForm, ItemFacturaVenta, PercepcionFactura } from '@/types/ventas'
 import type { Cliente } from '@/types/clientes'
 import type { Producto } from '@/types/productos'
+import type { ItemCatalogo } from '@/types/servicios'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -25,7 +27,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-const emptyItem = (): ItemFacturaVenta => ({ tipo_item: 'producto', item_id: '', descripcion: '', cantidad: 1, precio_unitario: 0, iva_porcentaje: 21, descuento_porcentaje: 0, subtotal: 0 })
+const emptyItem = (): ItemFacturaVenta => ({ tipo_item: 'producto', producto_id: null, servicio_id: null, descripcion: '', cantidad: 1, precio_unitario: 0, iva_porcentaje: 21, descuento_porcentaje: 0, subtotal: 0 })
 const emptyPerc = (): PercepcionFactura => ({ tipo: '', numero_comprobante: '', importe: 0 })
 const tiposPercepcion = ['IIBB', 'Imp. Internos', 'Municipal', 'IVA Percepción', 'Sellos']
 
@@ -35,6 +37,7 @@ export default function FacturaForm({ onSubmit }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [catalogoItems, setCatalogoItems] = useState<ItemCatalogo[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null)
   const [itemLabels, setItemLabels] = useState<string[]>([''])
@@ -51,7 +54,30 @@ export default function FacturaForm({ onSubmit }: Props) {
 
   useEffect(() => {
     getClientes({ estado: 'activo' }).then(d => setClientes(d || []))
-    getProductos({ activo: true }).then(d => setProductos(d || []))
+    Promise.all([
+      getProductos({ estado: 'activo' }),
+      getServicios({ estado: 'activo' }),
+    ]).then(([prods, servs]) => {
+      setProductos(prods || [])
+      const prodItems: ItemCatalogo[] = (prods || []).map(p => ({
+        id: p.id,
+        tipo: 'producto',
+        nombre: p.nombre,
+        codigo: p.codigo,
+        iva: p.iva,
+        precio_venta: p.precio_venta,
+        stock_actual: p.stock_actual,
+        stock_minimo: p.stock_minimo,
+        unidad_medida: p.unidad_medida,
+      }))
+      const servItems: ItemCatalogo[] = (servs || []).map(s => ({
+        id: s.id,
+        tipo: 'servicio',
+        nombre: s.nombre,
+        iva: s.iva,
+      }))
+      setCatalogoItems([...prodItems, ...servItems])
+    })
   }, [])
 
   function clearError(field: string) {
@@ -70,25 +96,27 @@ export default function FacturaForm({ onSubmit }: Props) {
     if (c) setField('tipo', c.tipo_factura)
   }
 
-  function selectProductoItem(idx: number, producto: Producto | null) {
+  function selectItem(idx: number, item: ItemCatalogo | null) {
     setForm(p => {
       const items = [...p.items]
-      if (producto) {
+      if (item) {
         items[idx] = {
           ...items[idx],
-          item_id: producto.id,
-          descripcion: producto.nombre,
-          precio_unitario: producto.precio_venta,
-          iva_porcentaje: producto.iva,
+          tipo_item: item.tipo,
+          producto_id: item.tipo === 'producto' ? item.id : null,
+          servicio_id: item.tipo === 'servicio' ? item.id : null,
+          descripcion: item.nombre,
+          precio_unitario: item.precio_venta ?? items[idx].precio_unitario,
+          iva_porcentaje: item.iva,
         }
       } else {
-        items[idx] = { ...items[idx], item_id: '', descripcion: '' }
+        items[idx] = { ...items[idx], tipo_item: 'producto', producto_id: null, servicio_id: null, descripcion: '' }
       }
       const i = items[idx]
       i.subtotal = i.cantidad * i.precio_unitario * (1 - i.descuento_porcentaje / 100)
       return { ...p, items }
     })
-    setItemLabels(prev => { const next = [...prev]; next[idx] = producto?.nombre || ''; return next })
+    setItemLabels(prev => { const next = [...prev]; next[idx] = item?.nombre || ''; return next })
     clearError(`item_${idx}_descripcion`)
     clearError(`item_${idx}_precio`)
   }
@@ -119,9 +147,9 @@ export default function FacturaForm({ onSubmit }: Props) {
   }
   function removePerc(idx: number) { setForm(p => ({ ...p, percepciones: p.percepciones.filter((_,i) => i !== idx) })) }
 
-  function getStockHint(item_id: string) {
-    if (!item_id) return null
-    const prod = productos.find(p => p.id === item_id)
+  function getStockHint(item: ItemFacturaVenta) {
+    if (item.tipo_item !== 'producto' || !item.producto_id) return null
+    const prod = productos.find(p => p.id === item.producto_id)
     if (!prod) return null
     if (prod.stock_actual <= 0) return { text: 'Sin stock disponible', color: 'text-[#EE3232]' }
     const qty = pluralize(prod.stock_actual, prod.unidad_medida || 'unidad')
@@ -139,27 +167,23 @@ export default function FacturaForm({ onSubmit }: Props) {
 
     const newErrors: Record<string, string> = {}
 
-    // Validaciones básicas
     if (!form.cliente_id) newErrors['cliente_id'] = 'El cliente es obligatorio.'
     if (!form.fecha_emision) newErrors['fecha_emision'] = 'La fecha de emisión es obligatoria.'
 
-    // Validar ítems
     form.items.forEach((item, idx) => {
       const n = idx + 1
       if (!item.descripcion?.trim()) newErrors[`item_${idx}_descripcion`] = `Ítem ${n}: la descripción es obligatoria.`
       if (!item.cantidad || Number(item.cantidad) <= 0) newErrors[`item_${idx}_cantidad`] = `Ítem ${n}: la cantidad debe ser mayor a 0.`
       if (!item.precio_unitario || Number(item.precio_unitario) <= 0) newErrors[`item_${idx}_precio`] = `Ítem ${n}: el precio debe ser mayor a 0.`
 
-      // Validar stock
-      if (item.item_id) {
-        const prod = productos.find(p => p.id === item.item_id)
+      if (item.tipo_item === 'producto' && item.producto_id) {
+        const prod = productos.find(p => p.id === item.producto_id)
         if (prod && Number(item.cantidad) > Number(prod.stock_actual)) {
           newErrors[`item_${idx}_cantidad`] = `Ítem ${n}: stock insuficiente — disponible: ${prod.stock_actual}`
         }
       }
     })
 
-    // Validar percepciones
     form.percepciones.forEach((p, idx) => {
       if (p.importe > 0 || p.tipo) {
         const n = idx + 1
@@ -244,23 +268,24 @@ export default function FacturaForm({ onSubmit }: Props) {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-[#F1F0EE] bg-[#F9F9F8]">
-                  {['Producto','Descripción','Cant.','Precio Unit.','IVA','Desc. %','Subtotal',''].map((h,i) => (
+                  {['Producto / Servicio','Descripción','Cant.','Precio Unit.','IVA','Desc. %','Subtotal',''].map((h,i) => (
                     <th key={i} className="font-mono text-[8.5px] tracking-[0.1em] uppercase text-[#A8A49D] px-3 py-2 text-left font-medium">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {form.items.map((item, idx) => {
-                  const stockHint = getStockHint(item.item_id)
+                  const stockHint = getStockHint(item)
+                  const selectedId = item.producto_id || item.servicio_id || ''
                   return (
                     <tr key={idx} className="border-b border-[#F1F0EE] last:border-0">
                       <td className="px-3 py-2 min-w-[180px] align-top">
                         <ProductoAutocomplete
-                          productos={productos}
-                          value={item.item_id}
+                          items={catalogoItems}
+                          value={selectedId}
                           label={itemLabels[idx]}
                           error={errors[`item_${idx}_descripcion`]}
-                          onSelect={p => selectProductoItem(idx, p)}
+                          onSelect={p => selectItem(idx, p)}
                         />
                         {stockHint && <div className={`text-[10px] font-medium mt-1 ${stockHint.color}`}>{stockHint.text}</div>}
                       </td>

@@ -22,7 +22,7 @@ export default function NuevoProductoPage() {
   const [listas, setListas] = useState<ListaPrecio[]>([])
   const [precios, setPrecios] = useState<Record<string, string>>({})
 
-  useEffect(() => { getListasPrecios().then(d => setListas(d || [])) }, [])
+  useEffect(() => { getListasPrecios({estado:'activo'}).then(d => setListas(d || [])) }, [])
 
   function set(k: string, v: any) { setForm(p => ({ ...p, [k]: v })) }
   function setPrecio(listaId: string, valor: string) { setPrecios(p => ({ ...p, [listaId]: valor })) }
