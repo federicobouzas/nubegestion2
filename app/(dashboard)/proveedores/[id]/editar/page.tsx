@@ -37,7 +37,7 @@ export default function EditarProveedorPage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar breadcrumb={[{ label: 'Proveedores', href: '/proveedores' }, { label: c.nombre_razon_social, href: `/proveedores/${id}` }, { label: 'Editar' }]} />
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-4 flex-shrink-0"><h1 className="font-display text-[20px] font-extrabold tracking-tight">Editar Proveedor</h1></div>
-      <div className="flex-1 overflow-y-auto"><ContactoForm initialData={proveedorToInitial(c)} onSubmit={handleSubmit} submitLabel="Guardar cambios" /></div>
+      <div className="flex-1 min-h-0 overflow-y-auto"><ContactoForm initialData={proveedorToInitial(c)} onSubmit={handleSubmit} submitLabel="Guardar cambios" /></div>
     </div>
   )
 }

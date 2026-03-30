@@ -150,7 +150,7 @@ export default function DashboardPage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar breadcrumb={[{ label: 'Dashboard' }]} />
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-5">
 
         {/* Alertas */}
         {(data.factVencidas > 0 || data.factCompraVencidas > 0 || data.stockBajo.length > 0) && (

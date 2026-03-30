@@ -107,7 +107,7 @@ export default function ConfiguracionPage() {
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-4 flex-shrink-0">
         <h1 className="font-display text-[20px] font-extrabold tracking-tight text-[#18181B]">Configuración</h1>
       </div>
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-none">
           <FormErrorBanner show={Object.keys(errors).length > 0} />
 

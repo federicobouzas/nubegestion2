@@ -179,7 +179,7 @@ export default function HistorialPage() {
       </div>
 
       {/* Tabla */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
           <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
         ) : (

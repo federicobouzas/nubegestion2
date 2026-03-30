@@ -249,7 +249,7 @@ export default function ReportesPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-5">
 
         {/* KPIs */}
         {loadingKpis ? (
@@ -324,7 +324,7 @@ export default function ReportesPage() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 min-h-0 overflow-y-auto">
                   {distribucionTipos.map((tipo, i) => {
                     const cats = distribucionCats.filter(c => c.tipo === tipo.nombre)
                     return (

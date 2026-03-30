@@ -14,7 +14,7 @@ export const CRITICIDADES: Record<CriticidadTicket, string> = {
   baja: 'Baja',
   media: 'Media',
   alta: 'Alta',
-  critica: 'Crítica',
+  critica: 'Crítico',
 }
 
 export const ESTADOS_TICKET: Record<EstadoTicket, string> = {
@@ -43,4 +43,13 @@ export interface TicketForm {
   tipo: TipoTicket
   criticidad: CriticidadTicket
   estado: EstadoTicket
+}
+
+export interface TicketComentario {
+  id: string
+  tenant_id: string
+  ticket_id: string
+  contenido: string
+  tipo_autor: 'usuario' | 'soporte'
+  created_at: string
 }

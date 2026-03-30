@@ -48,7 +48,7 @@ export default function ListasPreciosPage() {
         <h1 className="font-display text-[20px] font-extrabold tracking-tight text-[#18181B]">Listas de Precios</h1>
         <p className="text-[12.5px] text-[#A8A49D] mt-0.5">{listas.length} {listas.length === 1 ? 'lista' : 'listas'}</p>
       </div>
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
           <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
         ) : listas.length === 0 ? (

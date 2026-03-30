@@ -62,7 +62,7 @@ export default function EditarProductoPage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar breadcrumb={[{ label: 'Productos', href: '/productos' }, { label: p.nombre, href: `/productos/${id}` }, { label: 'Editar' }]} />
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-4 flex-shrink-0"><h1 className="font-display text-[20px] font-extrabold tracking-tight">Editar Producto</h1></div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3"><span className="font-display text-[13.5px] font-bold">Datos del producto</span></div>

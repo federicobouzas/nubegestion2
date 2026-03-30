@@ -22,7 +22,7 @@ export default function VerProveedorPage() {
       <Topbar breadcrumb={[{ label: 'Proveedores', href: '/proveedores' }, { label: c.nombre_razon_social }]} actions={
         <Link href={`/proveedores/${id}/editar`} className="flex items-center gap-1.5 text-[11.5px] font-semibold px-3 py-1.5 rounded-[7px] border border-[#E5E4E0] bg-white text-[#18181B] hover:border-[#A8A49D] transition-colors"><Pencil size={12} strokeWidth={2.2} /> Editar</Link>
       } />
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-4">
         <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
           <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center justify-between">
             <span className="font-display text-[13.5px] font-bold">{c.nombre_razon_social}</span>

@@ -59,7 +59,7 @@ export default function MovimientoDetallePage() {
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-4 flex-shrink-0">
         <h1 className="font-display text-[20px] font-extrabold tracking-tight">Editar Movimiento</h1>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <MovimientoForm
           initialData={{
             cuenta_origen_id: movimiento.cuenta_origen_id,

@@ -54,7 +54,7 @@ export default function VerVentaPage() {
           </div>
         }
       />
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-4">
         {/* Header */}
         <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
           <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center justify-between">

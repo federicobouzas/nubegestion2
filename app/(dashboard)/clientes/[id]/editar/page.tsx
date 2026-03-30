@@ -37,7 +37,7 @@ export default function EditarClientePage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar breadcrumb={[{ label: 'Clientes', href: '/clientes' }, { label: c.nombre_razon_social, href: `/clientes/${id}` }, { label: 'Editar' }]} />
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-4 flex-shrink-0"><h1 className="font-display text-[20px] font-extrabold tracking-tight">Editar Cliente</h1></div>
-      <div className="flex-1 overflow-y-auto"><ContactoForm initialData={clienteToInitial(c)} onSubmit={handleSubmit} submitLabel="Guardar cambios" /></div>
+      <div className="flex-1 min-h-0 overflow-y-auto"><ContactoForm initialData={clienteToInitial(c)} onSubmit={handleSubmit} submitLabel="Guardar cambios" /></div>
     </div>
   )
 }

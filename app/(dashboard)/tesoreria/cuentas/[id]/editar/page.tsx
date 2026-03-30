@@ -29,7 +29,7 @@ export default function EditarCuentaPage() {
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-4 flex-shrink-0">
         <h1 className="font-display text-[20px] font-extrabold tracking-tight">Editar Cuenta</h1>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <CuentaForm
           initialData={{ nombre: cuenta.nombre, tipo: cuenta.tipo, activo: cuenta.activo }}
           onSubmit={handleSubmit}

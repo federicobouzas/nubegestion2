@@ -36,7 +36,7 @@ export default function CategoriasGastoPage() {
         <h1 className="font-display text-[20px] font-extrabold tracking-tight text-[#18181B]">Categorías de Gastos</h1>
         <p className="text-[12.5px] text-[#A8A49D] mt-0.5">{categorias.length} categorías</p>
       </div>
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
           <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
         ) : categorias.length === 0 ? (

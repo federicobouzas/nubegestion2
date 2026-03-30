@@ -48,7 +48,7 @@ export default function ServiciosPage() {
         onPage={setPage}
         onPageSize={setPageSize}
       />
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
         <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
           <table className="w-full border-collapse">
             <thead>

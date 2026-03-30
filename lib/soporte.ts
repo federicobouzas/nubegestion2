@@ -66,3 +66,28 @@ export async function deleteTicket(id: string) {
     .eq('tenant_id', tenantId)
   if (error) throw error
 }
+
+export async function getComentariosTicket(ticket_id: string) {
+  const supabase = createClient()
+  const tenantId = await getTenantId()
+  const { data, error } = await supabase
+    .from('ticket_comentarios')
+    .select('*')
+    .eq('ticket_id', ticket_id)
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return data
+}
+
+export async function addComentarioTicket(ticket_id: string, contenido: string, tipo_autor: 'usuario' | 'soporte') {
+  const supabase = createClient()
+  const tenantId = await getTenantId()
+  const { data, error } = await supabase
+    .from('ticket_comentarios')
+    .insert({ ticket_id, contenido, tipo_autor, tenant_id: tenantId })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}

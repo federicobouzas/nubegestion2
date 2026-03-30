@@ -95,17 +95,17 @@ export default function SoportePage() {
         </select>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
         <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-[#F9F9F8] border-b border-[#E5E4E0]">
                 <th className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-3 text-left font-medium">Código</th>
+                <th className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-3 text-left font-medium">Fecha</th>
                 <th className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-3 text-left font-medium">Título</th>
                 <th className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-3 text-left font-medium">Tipo</th>
                 <th className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-3 text-left font-medium">Criticidad</th>
                 <th className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-3 text-left font-medium">Estado</th>
-                <th className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-3 text-left font-medium">Fecha</th>
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
@@ -117,6 +117,9 @@ export default function SoportePage() {
               ) : data?.map((t: any) => (
                 <tr key={t.id} className="group border-b border-[#F1F0EE] last:border-0 hover:bg-[#FEF0EA] transition-colors">
                   <td className="px-4 py-3 font-mono text-[11px] text-[#6B6762]">{t.codigo}</td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-[#6B6762]">
+                    {new Date(t.created_at).toLocaleDateString('es-AR')}
+                  </td>
                   <td className="px-4 py-3 text-[12px] font-semibold text-[#18181B] max-w-xs truncate">{t.titulo}</td>
                   <td className="px-4 py-3 text-[12px] text-[#6B6762]">{TIPOS_TICKET[t.tipo as TipoTicket] ?? t.tipo}</td>
                   <td className="px-4 py-3">
@@ -128,9 +131,6 @@ export default function SoportePage() {
                     <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${estadoVariants[t.estado as EstadoTicket] ?? ''}`}>
                       {ESTADOS_TICKET[t.estado as EstadoTicket] ?? t.estado}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-[#6B6762]">
-                    {new Date(t.created_at).toLocaleDateString('es-AR')}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

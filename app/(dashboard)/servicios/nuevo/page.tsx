@@ -42,7 +42,7 @@ export default function NuevoServicioPage() {
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-4 flex-shrink-0">
         <h1 className="font-display text-[20px] font-extrabold tracking-tight">Nuevo Servicio</h1>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           {error && <div className="bg-[#FEE8E8] border border-[#FECACA] text-[#7F1D1D] text-[13px] rounded-lg px-4 py-3">{error}</div>}
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">

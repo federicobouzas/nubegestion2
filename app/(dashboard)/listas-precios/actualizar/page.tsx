@@ -91,7 +91,7 @@ export default function ActualizarPreciosPage() {
         <h1 className="font-display text-[20px] font-extrabold tracking-tight">Actualización Masiva de Precios</h1>
         <p className="text-[12.5px] text-[#A8A49D] mt-0.5">Descargá el listado, editá los precios en Excel y volvé a subirlo.</p>
       </div>
-      <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto p-6 flex flex-col gap-4">
 
         {/* Paso 1: seleccionar lista */}
         <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
