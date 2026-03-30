@@ -4,7 +4,8 @@
       "Bash(ls \"/Users/federico/nubegestion/app/\\(dashboard\\)/soporte\")",
       "Bash(mkdir -p \"/Users/federico/nubegestion/app/\\(dashboard\\)/soporte/[id]\")",
       "Bash(touch \"/Users/federico/nubegestion/app/\\(dashboard\\)/soporte/[id]/page.tsx\")",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

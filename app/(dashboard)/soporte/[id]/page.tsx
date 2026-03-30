@@ -41,8 +41,8 @@ export default function VerTicketPage() {
   const [loading, setLoading] = useState(true)
   const [savingEstado, setSavingEstado] = useState(false)
   const [nuevoComentario, setNuevoComentario] = useState('')
+  const [tipoAutor, setTipoAutor] = useState<'usuario' | 'soporte'>('usuario')
   const [enviando, setEnviando] = useState(false)
-
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -82,10 +82,15 @@ export default function VerTicketPage() {
     if (!nuevoComentario.trim() || !ticket) return
     setEnviando(true)
     try {
-      const comentario = await addComentarioTicket(id, nuevoComentario.trim(), 'usuario')
+      const res = await fetch('/api/soporte/comentario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticket_id: id, contenido: nuevoComentario.trim(), tipo_autor: tipoAutor }),
+      })
+      if (!res.ok) throw new Error('Error al enviar')
+      const { comentario } = await res.json()
       setComentarios(prev => [...prev, comentario])
       setNuevoComentario('')
-      // Si estaba abierto, pasar a en_progreso
       if (ticket.estado === 'abierto') {
         const updated = await updateTicket(id, { estado: 'en_progreso' })
         setTicket(prev => prev ? { ...prev, estado: updated.estado } : prev)
@@ -199,6 +204,20 @@ export default function VerTicketPage() {
           {ticket.estado !== 'cerrado' && (
             <div className="border-t border-[#E5E4E0] p-4">
               <form onSubmit={handleEnviar} className="flex flex-col gap-2">
+                <div className="flex gap-2 items-center">
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-[#A8A49D]">Escribir como</span>
+                  <div className="flex rounded-[7px] border border-[#E5E4E0] overflow-hidden">
+                    {(['usuario', 'soporte'] as const).map(t => (
+                      <button key={t} type="button" onClick={() => setTipoAutor(t)}
+                        className={`px-3 py-1 text-[11.5px] font-semibold transition-colors ${tipoAutor === t ? (t === 'soporte' ? 'bg-[#F2682E] text-white' : 'bg-[#2B445A] text-white') : 'bg-white text-[#6B6762] hover:bg-[#F9F9F8]'}`}>
+                        {t === 'soporte' ? 'Soporte' : 'Usuario'}
+                      </button>
+                    ))}
+                  </div>
+                  {tipoAutor === 'soporte' && (
+                    <span className="text-[11px] text-[#F2682E] font-medium">Se enviará un email al usuario</span>
+                  )}
+                </div>
                 <div className="flex gap-2">
                   <textarea
                     className="flex-1 bg-[#F9F9F8] border border-[#E5E4E0] rounded-[9px] px-3 py-2 text-[12.5px] text-[#18181B] focus:outline-none focus:border-[#F2682E] focus:ring-2 focus:ring-[#F2682E]/10 transition-colors resize-none placeholder:text-[#A8A49D]"
