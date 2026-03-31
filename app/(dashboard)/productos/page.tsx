@@ -6,29 +6,35 @@ import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
 import Badge from '@/components/shared/Badge'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
+import { useListState } from '@/hooks/useListState'
 import { pluralize } from '@/lib/utils'
 
 export default function ProductosPage() {
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
-  const [filtroEstado, setFiltroEstado] = useState('')
+  const ls = useListState('productos')
+  const [filtroEstado, setFiltroEstado] = useState(ls.extras.estado ?? '')
 
   const filters: Record<string, any> = {}
   if (filtroEstado) filters.estado = filtroEstado
 
-  const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
+  const { data, total, loading, page, setPage: _setPage, pageSize, setPageSize: _setPageSize, totalPages } = usePaginatedList({
     table: 'productos',
     select: '*',
     orderBy: 'nombre',
     orderAsc: true,
-    search: { column: 'nombre', value: search },
+    search: { column: 'nombre', value: ls.search },
     filters,
+    initialPage: ls.page,
+    initialPageSize: ls.pageSize,
   })
+
+  function setPage(p: number) { _setPage(p); ls.setPage(p) }
+  function setPageSize(s: number) { _setPageSize(s); ls.setPageSize(s) }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    setSearch(searchInput)
-    setPage(0)
+    ls.setSearch(ls.searchInput)
+    ls.setPage(0)
+    _setPage(0)
   }
 
   return (
@@ -44,8 +50,8 @@ export default function ProductosPage() {
       <ListHeader
         title="Productos"
         searchPlaceholder="Buscar producto..."
-        searchValue={searchInput}
-        onSearchChange={setSearchInput}
+        searchValue={ls.searchInput}
+        onSearchChange={ls.setSearchInput}
         onSearchSubmit={handleSearch}
         total={total}
         page={page}
@@ -57,7 +63,7 @@ export default function ProductosPage() {
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-2.5 flex gap-3 flex-shrink-0">
         <select
           value={filtroEstado}
-          onChange={e => { setFiltroEstado(e.target.value); setPage(0) }}
+          onChange={e => { setFiltroEstado(e.target.value); ls.setExtra('estado', e.target.value); setPage(0) }}
           className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]"
         >
           <option value="">Todos los estados</option>

@@ -13,11 +13,13 @@ interface Options {
   rangeFilters?: { column: string; gte?: string; lte?: string }[]
   search?: { column: string; value: string }
   transform?: (rows: any[]) => Promise<any[]>
+  initialPage?: number
+  initialPageSize?: number
 }
 
 export function usePaginatedList(opts: Options) {
-  const [page, setPage] = useState(0)
-  const [pageSize, setPageSize] = useState(PAGE_SIZES[0])
+  const [page, setPage] = useState(opts.initialPage ?? 0)
+  const [pageSize, setPageSize] = useState(opts.initialPageSize ?? PAGE_SIZES[0])
   const [data, setData] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)

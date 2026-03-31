@@ -8,7 +8,7 @@ export default function NuevaVentaPage() {
   const router = useRouter()
   async function handleSubmit(data: any) {
     const f = await createFacturaVenta(data)
-    router.push('/ventas')
+    router.back()
   }
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

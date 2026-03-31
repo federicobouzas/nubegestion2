@@ -8,7 +8,7 @@ export default function NuevoGastoPage() {
   const router = useRouter()
   async function handleSubmit(data: any) {
     await createGasto(data)
-    router.push('/gastos')
+    router.back()
   }
   return (
     <div className="flex-1 flex flex-col overflow-hidden">

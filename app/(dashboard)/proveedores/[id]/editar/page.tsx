@@ -30,7 +30,7 @@ export default function EditarProveedorPage() {
   const [c, setC] = useState<Proveedor | null>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => { getProveedor(id).then(setC).catch(console.error).finally(() => setLoading(false)) }, [id])
-  async function handleSubmit(data: ContactoFormData) { await updateProveedor(id, data as any); router.push('/proveedores') }
+  async function handleSubmit(data: ContactoFormData) { await updateProveedor(id, data as any); router.back() }
   if (loading) return <div className="flex-1 flex items-center justify-center text-[#A8A49D] text-sm">Cargando...</div>
   if (!c) return null
   return (

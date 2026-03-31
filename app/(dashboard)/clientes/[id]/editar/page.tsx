@@ -30,7 +30,7 @@ export default function EditarClientePage() {
   const [c, setC] = useState<Cliente | null>(null)
   const [loading, setLoading] = useState(true)
   useEffect(() => { getCliente(id).then(setC).catch(console.error).finally(() => setLoading(false)) }, [id])
-  async function handleSubmit(data: ContactoFormData) { await updateCliente(id, data as any); router.push('/clientes') }
+  async function handleSubmit(data: ContactoFormData) { await updateCliente(id, data as any); router.back() }
   if (loading) return <div className="flex-1 flex items-center justify-center text-[#A8A49D] text-sm">Cargando...</div>
   if (!c) return null
   return (

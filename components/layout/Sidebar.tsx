@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Cloud, Wallet, FolderOpen, LogOut } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Users, Factory, Package, Wrench, Tags, FileText, HandCoins, ArrowUpCircle, ShoppingCart, Send, Receipt, FlaskConical, Landmark, History, Cloud, Wallet, FolderOpen, LogOut, Building2, Settings2 } from 'lucide-react'
 import { signOut } from '@/lib/auth'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -32,6 +32,8 @@ const nav = [
   ]},
   { section: 'Producción', items: [
     { label: 'Insumos', href: '/insumos', icon: FlaskConical },
+    { label: 'Insumos en Productos', href: '/insumos-en-productos', icon: Settings2 },
+    { label: 'Talleres', href: '/talleres', icon: Building2 },
     { label: 'Fabricación', href: '/fabricacion', icon: Wrench },
   ]},
   { section: 'Tesorería', items: [

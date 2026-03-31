@@ -12,7 +12,14 @@
       "Bash(ls:*)",
       "Bash(ls /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/guias/)",
       "Bash(npx tsc:*)",
-      "Bash(ls /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/guias/[slug]/)"
+      "Bash(ls /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/guias/[slug]/)",
+      "Bash(grep -A 25 \"^CREATE TABLE \\\\`gastos\" /Users/federico/nubegestion/docs/v1/produccion.sql)",
+      "Bash(cd:*)",
+      "Bash(sed -i '' '/setSaved\\(false\\)/d' \"/Users/federico/nubegestion/app/\\(dashboard\\)/insumos-en-productos/[id]/page.tsx\")",
+      "Bash(sed -i '' '/saved && !saving/,/span>/d' \"/Users/federico/nubegestion/app/\\(dashboard\\)/insumos-en-productos/[id]/page.tsx\")",
+      "Bash(grep:*)",
+      "Bash(sed -i '' \"s/router\\\\.push\\(''\\\\/ventas''\\)/router.back\\(\\)/g\" /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/ventas/nueva/page.tsx)",
+      "Bash(sed -i '' \"s/router\\\\.push\\(''\\\\/compras''\\)/router.back\\(\\)/g\" /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/compras/nueva/page.tsx)"
     ]
   }
 }

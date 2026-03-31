@@ -37,7 +37,7 @@ export default function NuevoProductoPage() {
         lista_precio_id: l.id,
         precio: precios[l.id] !== '' && precios[l.id] !== undefined ? parseFloat(precios[l.id].replace(',', '.')) : null,
       })))
-      router.push('/productos')
+      router.back()
     } catch (err: any) { setError(err.message || 'Error.'); setLoading(false) }
   }
 

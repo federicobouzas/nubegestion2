@@ -6,7 +6,7 @@ import { createCliente } from '@/lib/clientes'
 
 export default function NuevoClientePage() {
   const router = useRouter()
-  async function handleSubmit(data: ContactoFormData) { await createCliente(data as any); router.push('/clientes') }
+  async function handleSubmit(data: ContactoFormData) { await createCliente(data as any); router.back() }
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar breadcrumb={[{ label: 'Clientes', href: '/clientes' }, { label: 'Nuevo' }]} />

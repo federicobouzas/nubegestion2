@@ -6,7 +6,7 @@ import { createProveedor } from '@/lib/proveedores'
 
 export default function NuevoProveedorPage() {
   const router = useRouter()
-  async function handleSubmit(data: ContactoFormData) { await createProveedor(data as any); router.push('/proveedores') }
+  async function handleSubmit(data: ContactoFormData) { await createProveedor(data as any); router.back() }
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar breadcrumb={[{ label: 'Proveedores', href: '/proveedores' }, { label: 'Nuevo' }]} />

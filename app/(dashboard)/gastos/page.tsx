@@ -7,14 +7,14 @@ import ListHeader from '@/components/shared/ListHeader'
 import { formatMonto, getCategoriasGasto } from '@/lib/gastos'
 import { createClient } from '@/lib/supabase'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
+import { useListState } from '@/hooks/useListState'
 
 export default function GastosPage() {
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
-  const [fechaDesde, setFechaDesde] = useState('')
-  const [fechaHasta, setFechaHasta] = useState('')
-  const [filtroTipo, setFiltroTipo] = useState('')
-  const [filtroCategoria, setFiltroCategoria] = useState('')
+  const ls = useListState('gastos')
+  const [fechaDesde, setFechaDesde] = useState(ls.extras.fechaDesde ?? '')
+  const [fechaHasta, setFechaHasta] = useState(ls.extras.fechaHasta ?? '')
+  const [filtroTipo, setFiltroTipo] = useState(ls.extras.tipo ?? '')
+  const [filtroCategoria, setFiltroCategoria] = useState(ls.extras.categoria ?? '')
   const [categorias, setCategorias] = useState<{ id: string; tipo: string; descripcion: string }[]>([])
 
   useEffect(() => { getCategoriasGasto().then(d => setCategorias(d || [])) }, [])
@@ -24,19 +24,21 @@ export default function GastosPage() {
 
   function handleTipo(tipo: string) {
     setFiltroTipo(tipo)
+    ls.setExtra('tipo', tipo)
     setFiltroCategoria('')
+    ls.setExtra('categoria', '')
     setPage(0)
   }
 
   const dbFilters: Record<string, any> = {}
   if (filtroCategoria) dbFilters.categoria_id = filtroCategoria
 
-  const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
+  const { data, total, loading, page, setPage: _setPage, pageSize, setPageSize: _setPageSize, totalPages } = usePaginatedList({
     table: 'gastos',
     select: '*, categorias_gastos(tipo, descripcion)',
     orderBy: 'created_at',
     orderAsc: false,
-    search: { column: 'codigo', value: search },
+    search: { column: 'codigo', value: ls.search },
     filters: dbFilters,
     rangeFilters: [{ column: 'fecha_pago', gte: fechaDesde || undefined, lte: fechaHasta || undefined }],
     transform: async (rows) => {
@@ -46,12 +48,18 @@ export default function GastosPage() {
         return { ...g, total: tot ?? 0 }
       }))
     },
+    initialPage: ls.page,
+    initialPageSize: ls.pageSize,
   })
+
+  function setPage(p: number) { _setPage(p); ls.setPage(p) }
+  function setPageSize(s: number) { _setPageSize(s); ls.setPageSize(s) }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    setSearch(searchInput)
-    setPage(0)
+    ls.setSearch(ls.searchInput)
+    ls.setPage(0)
+    _setPage(0)
   }
 
   return (
@@ -67,8 +75,8 @@ export default function GastosPage() {
       <ListHeader
         title="Gastos"
         searchPlaceholder="Buscar por código..."
-        searchValue={searchInput}
-        onSearchChange={setSearchInput}
+        searchValue={ls.searchInput}
+        onSearchChange={ls.setSearchInput}
         onSearchSubmit={handleSearch}
         total={total}
         page={page}
@@ -84,20 +92,20 @@ export default function GastosPage() {
           {tiposDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
         {filtroTipo && (
-          <select value={filtroCategoria} onChange={e => { setFiltroCategoria(e.target.value); setPage(0) }}
+          <select value={filtroCategoria} onChange={e => { setFiltroCategoria(e.target.value); ls.setExtra('categoria', e.target.value); setPage(0) }}
             className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
             <option value="">Todas las categorías</option>
             {categoriasFiltradas.map(c => <option key={c.id} value={c.id}>{c.descripcion}</option>)}
           </select>
         )}
         <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#A8A49D]">Fecha</span>
-        <input type="date" value={fechaDesde} onChange={e => { setFechaDesde(e.target.value); setPage(0) }}
+        <input type="date" value={fechaDesde} onChange={e => { setFechaDesde(e.target.value); ls.setExtra('fechaDesde', e.target.value); setPage(0) }}
           className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
         <span className="text-[11px] text-[#A8A49D]">—</span>
-        <input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); setPage(0) }}
+        <input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); ls.setExtra('fechaHasta', e.target.value); setPage(0) }}
           className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
         {(filtroTipo || filtroCategoria || fechaDesde || fechaHasta) && (
-          <button onClick={() => { setFiltroTipo(''); setFiltroCategoria(''); setFechaDesde(''); setFechaHasta(''); setPage(0) }}
+          <button onClick={() => { setFiltroTipo(''); setFiltroCategoria(''); setFechaDesde(''); setFechaHasta(''); ls.setExtra('tipo', ''); ls.setExtra('categoria', ''); ls.setExtra('fechaDesde', ''); ls.setExtra('fechaHasta', ''); setPage(0) }}
             className="text-[11px] text-[#F2682E] hover:text-[#C94E18] font-medium transition-colors">Limpiar</button>
         )}
       </div>

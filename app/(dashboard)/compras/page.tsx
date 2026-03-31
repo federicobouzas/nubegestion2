@@ -8,6 +8,7 @@ import { calcularEstadoCompra, formatMonto } from '@/lib/compras'
 import { getProveedores } from '@/lib/proveedores'
 import { createClient } from '@/lib/supabase'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
+import { useListState } from '@/hooks/useListState'
 
 const estadoBadge = (estado: string) => {
   const map: Record<string, string> = { pagada: 'bg-[#E8F7EF] text-[#1A5C38]', pendiente: 'bg-[#FEF8E1] text-[#7A5500]', vencida: 'bg-[#FEE8E8] text-[#7F1D1D]' }
@@ -17,12 +18,11 @@ const estadoBadge = (estado: string) => {
 }
 
 export default function ComprasPage() {
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
-  const [fechaDesde, setFechaDesde] = useState('')
-  const [fechaHasta, setFechaHasta] = useState('')
-  const [filtroProveedor, setFiltroProveedor] = useState('')
-  const [filtroEstado, setFiltroEstado] = useState('')
+  const ls = useListState('compras')
+  const [fechaDesde, setFechaDesde] = useState(ls.extras.fechaDesde ?? '')
+  const [fechaHasta, setFechaHasta] = useState(ls.extras.fechaHasta ?? '')
+  const [filtroProveedor, setFiltroProveedor] = useState(ls.extras.proveedor ?? '')
+  const [filtroEstado, setFiltroEstado] = useState(ls.extras.estado ?? '')
   const [proveedores, setProveedores] = useState<{ id: string; nombre_razon_social: string }[]>([])
 
   useEffect(() => { getProveedores({ estado: 'activo' }).then(d => setProveedores(d || [])) }, [])
@@ -30,12 +30,12 @@ export default function ComprasPage() {
   const dbFilters: Record<string, any> = {}
   if (filtroProveedor) dbFilters.proveedor_id = filtroProveedor
 
-  const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
+  const { data, total, loading, page, setPage: _setPage, pageSize, setPageSize: _setPageSize, totalPages } = usePaginatedList({
     table: 'facturas_compra',
     select: '*, proveedores(nombre_razon_social, cuit, condicion_iva)',
     orderBy: 'created_at',
     orderAsc: false,
-    search: { column: 'codigo', value: search },
+    search: { column: 'codigo', value: ls.search },
     filters: dbFilters,
     rangeFilters: [{ column: 'fecha_emision', gte: fechaDesde || undefined, lte: fechaHasta || undefined }],
     transform: async (rows) => {
@@ -46,12 +46,18 @@ export default function ComprasPage() {
         return { ...fc, saldo_pendiente: saldo ?? 0, total: tot ?? 0 }
       }))
     },
+    initialPage: ls.page,
+    initialPageSize: ls.pageSize,
   })
+
+  function setPage(p: number) { _setPage(p); ls.setPage(p) }
+  function setPageSize(s: number) { _setPageSize(s); ls.setPageSize(s) }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    setSearch(searchInput)
-    setPage(0)
+    ls.setSearch(ls.searchInput)
+    ls.setPage(0)
+    _setPage(0)
   }
 
   return (
@@ -67,8 +73,8 @@ export default function ComprasPage() {
       <ListHeader
         title="Compras"
         searchPlaceholder="Buscar por código..."
-        searchValue={searchInput}
-        onSearchChange={setSearchInput}
+        searchValue={ls.searchInput}
+        onSearchChange={ls.setSearchInput}
         onSearchSubmit={handleSearch}
         total={total}
         page={page}
@@ -78,12 +84,12 @@ export default function ComprasPage() {
         onPageSize={setPageSize}
       />
       <div className="bg-white border-b border-[#E5E4E0] px-6 py-2.5 flex gap-3 items-center flex-shrink-0 flex-wrap">
-        <select value={filtroProveedor} onChange={e => { setFiltroProveedor(e.target.value); setPage(0) }}
+        <select value={filtroProveedor} onChange={e => { setFiltroProveedor(e.target.value); ls.setExtra('proveedor', e.target.value); setPage(0) }}
           className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
           <option value="">Todos los proveedores</option>
           {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre_razon_social}</option>)}
         </select>
-        <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
+        <select value={filtroEstado} onChange={e => { setFiltroEstado(e.target.value); ls.setExtra('estado', e.target.value) }}
           className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2.5 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]">
           <option value="">Todos los estados</option>
           <option value="pagada">Pagada</option>
@@ -92,13 +98,13 @@ export default function ComprasPage() {
           <option value="anulada">Anulada</option>
         </select>
         <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#A8A49D]">Fecha</span>
-        <input type="date" value={fechaDesde} onChange={e => { setFechaDesde(e.target.value); setPage(0) }}
+        <input type="date" value={fechaDesde} onChange={e => { setFechaDesde(e.target.value); ls.setExtra('fechaDesde', e.target.value); setPage(0) }}
           className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
         <span className="text-[11px] text-[#A8A49D]">—</span>
-        <input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); setPage(0) }}
+        <input type="date" value={fechaHasta} onChange={e => { setFechaHasta(e.target.value); ls.setExtra('fechaHasta', e.target.value); setPage(0) }}
           className="h-7 text-[11.5px] font-medium border border-[#E5E4E0] rounded-[7px] px-2 bg-white text-[#6B6762] focus:outline-none focus:border-[#F2682E]" />
         {(filtroProveedor || filtroEstado || fechaDesde || fechaHasta) && (
-          <button onClick={() => { setFiltroProveedor(''); setFiltroEstado(''); setFechaDesde(''); setFechaHasta(''); setPage(0) }}
+          <button onClick={() => { setFiltroProveedor(''); setFiltroEstado(''); setFechaDesde(''); setFechaHasta(''); ls.setExtra('proveedor', ''); ls.setExtra('estado', ''); ls.setExtra('fechaDesde', ''); ls.setExtra('fechaHasta', ''); setPage(0) }}
             className="text-[11px] text-[#F2682E] hover:text-[#C94E18] font-medium transition-colors">Limpiar</button>
         )}
       </div>
