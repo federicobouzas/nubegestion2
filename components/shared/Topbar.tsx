@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { ChevronRight, Bell, BookOpen, Ticket, Settings } from 'lucide-react'
+import { ChevronRight, BookOpen, Ticket, Settings } from 'lucide-react'
+import NotificacionesBell from '@/components/notificaciones/NotificacionesBell'
 
 interface BreadcrumbItem { label: string; href?: string }
 interface TopbarProps { breadcrumb: BreadcrumbItem[]; actions?: React.ReactNode }
@@ -41,7 +42,7 @@ export default function Topbar({ breadcrumb, actions }: TopbarProps) {
       </div>
       <div className="flex items-center gap-2">
         {actions}
-        <TopbarIconBtn icon={<Bell size={14} strokeWidth={2} />} tooltip="Notificaciones" />
+        <NotificacionesBell />
         <TopbarIconBtn icon={<BookOpen size={14} strokeWidth={2} />} tooltip="Guías de Ayuda" href="/guias" />
         <TopbarIconBtn icon={<Ticket size={14} strokeWidth={2} />} tooltip="Soporte" href="/soporte" />
         <TopbarIconBtn icon={<Settings size={14} strokeWidth={2} />} tooltip="Configuración" href="/configuracion" />
