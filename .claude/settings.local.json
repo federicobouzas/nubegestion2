@@ -19,7 +19,10 @@
       "Bash(sed -i '' '/saved && !saving/,/span>/d' \"/Users/federico/nubegestion/app/\\(dashboard\\)/insumos-en-productos/[id]/page.tsx\")",
       "Bash(grep:*)",
       "Bash(sed -i '' \"s/router\\\\.push\\(''\\\\/ventas''\\)/router.back\\(\\)/g\" /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/ventas/nueva/page.tsx)",
-      "Bash(sed -i '' \"s/router\\\\.push\\(''\\\\/compras''\\)/router.back\\(\\)/g\" /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/compras/nueva/page.tsx)"
+      "Bash(sed -i '' \"s/router\\\\.push\\(''\\\\/compras''\\)/router.back\\(\\)/g\" /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/compras/nueva/page.tsx)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(head:*)"
     ]
   }
 }
