@@ -92,7 +92,7 @@ export default function ProveedoresPage() {
                     <td className="px-4 py-3 font-mono text-[12px] text-[#6B6762]">{p.cuit || '—'}</td>
                     <td className="px-4 py-3 text-[12px] text-[#6B6762]">{p.condicion_iva}</td>
                     <td className="px-4 py-3"><span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-[5px] bg-[#DBEAFE] text-[#1E3A8A]">{p.tipo_factura}</span></td>
-                    <td className="px-4 py-3"><Badge variant={p.estado === 'activo' ? 'success' : 'default'}>{p.estado === 'activo' ? 'Activo' : 'Inactivo'}</Badge></td>
+                    <td className="px-4 py-3"><Badge variant={p.estado === 'activo' ? 'success' : 'danger'}>{p.estado === 'activo' ? 'Activo' : 'Inactivo'}</Badge></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link href={`/proveedores/${p.id}/editar`} className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#2B445A] hover:text-[#2B445A] transition-colors"><Pencil size={13} strokeWidth={2} /></Link>

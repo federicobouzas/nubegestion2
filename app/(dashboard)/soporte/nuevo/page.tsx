@@ -5,7 +5,7 @@ import { Save, X } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
 import { createTicket } from '@/lib/soporte'
 import { TIPOS_TICKET, CRITICIDADES } from '@/types/soporte'
-import type { TipoTicket, CriticidadTicket } from '@/types/soporte'
+import type { TipoTicket, CriticidadTicket, EstadoTicket } from '@/types/soporte'
 
 const inp = "bg-white border border-[#E5E4E0] rounded-[9px] px-3 py-2 text-[13px] font-medium text-[#18181B] focus:outline-none focus:border-[#F2682E] focus:ring-2 focus:ring-[#F2682E]/10 transition-colors placeholder:text-[#A8A49D] placeholder:font-normal w-full"
 
@@ -27,9 +27,9 @@ export default function NuevoTicketPage() {
   const [form, setForm] = useState({
     titulo: '',
     descripcion: '',
-    tipo: '' as TipoTicket | '',
-    criticidad: '' as CriticidadTicket | '',
-    estado: 'abierto' as const,
+    tipo: '' as TipoTicket,
+    criticidad: '' as CriticidadTicket,
+    estado: 'abierto' as EstadoTicket,
   })
 
   function set(k: string, v: any) { setForm(p => ({ ...p, [k]: v })) }
