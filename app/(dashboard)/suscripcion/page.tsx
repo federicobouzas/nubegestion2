@@ -9,8 +9,8 @@ export default async function SuscripcionPage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       <Topbar breadcrumb={[{ label: 'Cuenta' }, { label: 'Suscripción' }]} />
-      <div className="flex-1 overflow-y-auto p-6 flex justify-center">
-        <div className="w-full max-w-sm space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 flex justify-center items-start">
+        <div className="w-full max-w-sm space-y-4 pb-6">
 
           {info.status === 'ok' && (
             <div className="flex items-start gap-3 px-4 py-3 rounded-[10px] bg-[#E8F7EF] border border-[#4EBB7F]/30">
