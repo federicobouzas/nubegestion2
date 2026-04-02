@@ -127,9 +127,6 @@ export default function ProductoAutocomplete({ items, value, label, error, onSel
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[12.5px] font-semibold text-[#18181B] truncate">{p.nombre}</span>
-                  {p.tipo === 'servicio' && (
-                    <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#EFF6FF] text-[#1D4ED8] flex-shrink-0">SERV</span>
-                  )}
                 </div>
                 {p.codigo && <span className="text-[10px] text-[#A8A49D] font-mono">{p.codigo}</span>}
               </div>
@@ -145,7 +142,7 @@ export default function ProductoAutocomplete({ items, value, label, error, onSel
                     Stock: {p.stock_actual} {p.unidad_medida}
                   </span>
                 ) : (
-                  <span className="text-[10px] font-mono text-[#6B6762]">IVA {p.iva}%</span>
+                  <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#EFF6FF] text-[#1D4ED8] flex-shrink-0">SERV</span>
                 )}
               </div>
             </button>
