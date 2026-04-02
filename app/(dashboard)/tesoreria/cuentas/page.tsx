@@ -21,7 +21,7 @@ export default function CuentasPage() {
 
   const dbFilters: Record<string, any> = {}
   if (filtroTipo) dbFilters.tipo = filtroTipo
-  if (filtroEstado !== '') dbFilters.activo = filtroEstado === 'activo'
+  if (filtroEstado !== '') dbFilters.estado = filtroEstado === 'activo'
 
   const { data, total, loading, page, setPage, pageSize, setPageSize, totalPages } = usePaginatedList({
     table: 'cuentas',
@@ -109,7 +109,7 @@ export default function CuentasPage() {
                     <td className="px-4 py-3 text-[13px] font-semibold text-[#18181B]">{c.nombre}</td>
                     <td className="px-4 py-3">{tipoBadge(c.tipo)}</td>
                     <td className="px-4 py-3 font-mono text-[12px] font-bold text-[#18181B]">{formatMonto(c.saldo_actual)}</td>
-                    <td className="px-4 py-3"><span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${c.activo ? 'bg-[#E8F7EF] text-[#1A5C38]' : 'bg-[#F1F0EE] text-[#6B6762]'}`}>{c.activo ? 'Activo' : 'Inactivo'}</span></td>
+                    <td className="px-4 py-3"><span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${c.estado ? 'bg-[#E8F7EF] text-[#1A5C38]' : 'bg-[#F1F0EE] text-[#6B6762]'}`}>{c.estado ? 'Activo' : 'Inactivo'}</span></td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link href={`/tesoreria/cuentas/${c.id}/editar`} className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#2B445A] hover:text-[#2B445A] transition-colors"><Pencil size={13} strokeWidth={2} /></Link>

@@ -17,6 +17,13 @@ export async function signUp(email: string, password: string, nombre: string, em
     }
   })
   if (error) throw error
+
+  // El trigger de DB crea la estructura del tenant automáticamente.
+  // Este fetch es un safety-net idempotente por si el trigger no pudo ejecutarse.
+  if (data.session) {
+    await fetch('/api/setup-tenant', { method: 'POST' }).catch(() => null)
+  }
+
   return data
 }
 

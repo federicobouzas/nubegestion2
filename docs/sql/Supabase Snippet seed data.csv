@@ -1,0 +1,429 @@
+table_name,column_name,data_type,is_nullable
+ajustes_stock,id,uuid,NO
+ajustes_stock,tenant_id,uuid,NO
+ajustes_stock,producto_id,uuid,YES
+ajustes_stock,insumo_id,uuid,YES
+ajustes_stock,tipo,text,NO
+ajustes_stock,cantidad,numeric,NO
+ajustes_stock,motivo,text,YES
+ajustes_stock,fecha,date,NO
+ajustes_stock,created_at,timestamp with time zone,YES
+categorias,id,uuid,NO
+categorias,tenant_id,uuid,NO
+categorias,nombre,text,NO
+categorias,tipo,text,NO
+categorias,created_at,timestamp with time zone,YES
+categorias_gastos,id,uuid,NO
+categorias_gastos,tenant_id,uuid,NO
+categorias_gastos,tipo,text,NO
+categorias_gastos,descripcion,text,NO
+categorias_gastos,created_at,timestamp with time zone,YES
+categorias_gastos,estado,text,NO
+clientes,id,uuid,NO
+clientes,tenant_id,uuid,NO
+clientes,nombre_razon_social,text,NO
+clientes,cuit,text,YES
+clientes,condicion_iva,text,YES
+clientes,domicilio_fiscal,text,YES
+clientes,direccion,text,YES
+clientes,localidad,text,YES
+clientes,provincia,text,YES
+clientes,codigo_postal,text,YES
+clientes,telefono,text,YES
+clientes,email,text,YES
+clientes,web,text,YES
+clientes,tipo_factura,text,YES
+clientes,estado,text,YES
+clientes,created_at,timestamp with time zone,YES
+clientes,updated_at,timestamp with time zone,YES
+configuracion,id,uuid,NO
+configuracion,tenant_id,uuid,NO
+configuracion,razon_social,text,YES
+configuracion,cuit,text,YES
+configuracion,fecha_inicio_actividades,date,YES
+configuracion,punto_venta,integer,YES
+configuracion,domicilio_comercial,text,YES
+configuracion,ingresos_brutos,text,YES
+configuracion,condicion_iva,text,YES
+configuracion,created_at,timestamp with time zone,YES
+configuracion,updated_at,timestamp with time zone,YES
+contadores,tenant_id,uuid,NO
+contadores,tipo,text,NO
+contadores,ultimo_numero,integer,YES
+cuentas,id,uuid,NO
+cuentas,tenant_id,uuid,NO
+cuentas,nombre,text,NO
+cuentas,tipo,text,NO
+cuentas,activo,boolean,YES
+cuentas,created_at,timestamp with time zone,YES
+cuentas,updated_at,timestamp with time zone,YES
+cuentas,saldo_minimo_alerta,numeric,YES
+fabricaciones,id,uuid,NO
+fabricaciones,tenant_id,uuid,NO
+fabricaciones,numero,text,NO
+fabricaciones,fecha_fabricacion,date,NO
+fabricaciones,fecha_estimada_fin,date,YES
+fabricaciones,estado,text,YES
+fabricaciones,notas,text,YES
+fabricaciones,costo_total,numeric,YES
+fabricaciones,created_at,timestamp with time zone,YES
+fabricaciones,updated_at,timestamp with time zone,YES
+fabricaciones_productos,id,uuid,NO
+fabricaciones_productos,tenant_id,uuid,NO
+fabricaciones_productos,fabricacion_id,uuid,NO
+fabricaciones_productos,producto_id,uuid,NO
+fabricaciones_productos,cantidad,integer,NO
+fabricaciones_productos,costo_insumos,numeric,NO
+fabricaciones_productos,costo_fabricacion,numeric,NO
+fabricaciones_productos,costo_total,numeric,NO
+fabricaciones_productos,observaciones,text,YES
+fabricaciones_productos,created_at,timestamp with time zone,YES
+facturas_compra,id,uuid,NO
+facturas_compra,tenant_id,uuid,NO
+facturas_compra,proveedor_id,uuid,NO
+facturas_compra,numero,text,YES
+facturas_compra,tipo,text,NO
+facturas_compra,fecha_emision,date,NO
+facturas_compra,fecha_vencimiento,date,YES
+facturas_compra,cae,text,YES
+facturas_compra,cae_fecha_vencimiento,date,YES
+facturas_compra,notas,text,YES
+facturas_compra,created_at,timestamp with time zone,YES
+facturas_compra,updated_at,timestamp with time zone,YES
+facturas_compra,codigo,text,YES
+facturas_compra,condicion_compra,text,YES
+facturas_compra,periodo_desde,date,YES
+facturas_compra,periodo_hasta,date,YES
+facturas_venta,id,uuid,NO
+facturas_venta,tenant_id,uuid,NO
+facturas_venta,cliente_id,uuid,NO
+facturas_venta,numero,text,YES
+facturas_venta,tipo,text,NO
+facturas_venta,fecha_emision,date,NO
+facturas_venta,fecha_vencimiento,date,YES
+facturas_venta,cae,text,YES
+facturas_venta,cae_fecha_vencimiento,date,YES
+facturas_venta,notas,text,YES
+facturas_venta,created_at,timestamp with time zone,YES
+facturas_venta,updated_at,timestamp with time zone,YES
+facturas_venta,codigo,text,YES
+facturas_venta,periodo_desde,date,YES
+facturas_venta,periodo_hasta,date,YES
+facturas_venta,condicion_venta,text,YES
+gasto_metodos,id,uuid,NO
+gasto_metodos,tenant_id,uuid,NO
+gasto_metodos,gasto_id,uuid,YES
+gasto_metodos,cuenta_id,uuid,YES
+gasto_metodos,importe,numeric,NO
+gasto_metodos,created_at,timestamp with time zone,YES
+gastos,id,uuid,NO
+gastos,tenant_id,uuid,NO
+gastos,categoria_id,uuid,YES
+gastos,cuenta_id,uuid,YES
+gastos,descripcion,text,NO
+gastos,fecha,date,NO
+gastos,comprobante,text,YES
+gastos,notas,text,YES
+gastos,created_at,timestamp with time zone,YES
+gastos,codigo,text,YES
+gastos,fecha_pago,date,YES
+gastos,numero_factura,text,YES
+insumos,id,uuid,NO
+insumos,tenant_id,uuid,NO
+insumos,categoria_id,uuid,YES
+insumos,codigo,text,YES
+insumos,nombre,text,NO
+insumos,descripcion,text,YES
+insumos,unidad_medida,text,YES
+insumos,precio_costo,numeric,YES
+insumos,iva,numeric,YES
+insumos,stock_actual,numeric,YES
+insumos,stock_minimo,numeric,YES
+insumos,estado,text,YES
+insumos,created_at,timestamp with time zone,YES
+insumos,updated_at,timestamp with time zone,YES
+insumos_movimientos,id,uuid,NO
+insumos_movimientos,tenant_id,uuid,NO
+insumos_movimientos,insumo_id,uuid,NO
+insumos_movimientos,fecha_movimiento,timestamp with time zone,NO
+insumos_movimientos,descripcion,character varying,NO
+insumos_movimientos,entrada,numeric,NO
+insumos_movimientos,salida,numeric,NO
+insumos_movimientos,created_at,timestamp with time zone,YES
+insumos_produccion,id,uuid,NO
+insumos_produccion,tenant_id,uuid,NO
+insumos_produccion,nombre,character varying,NO
+insumos_produccion,precio_compra,numeric,NO
+insumos_produccion,unidad_medida,character varying,NO
+insumos_produccion,proveedor_id,uuid,YES
+insumos_produccion,stock,numeric,NO
+insumos_produccion,iva,numeric,NO
+insumos_produccion,estado,character varying,NO
+insumos_produccion,observaciones,text,YES
+insumos_produccion,created_at,timestamp with time zone,YES
+insumos_productos,id,uuid,NO
+insumos_productos,tenant_id,uuid,NO
+insumos_productos,insumo_id,uuid,NO
+insumos_productos,producto_id,uuid,NO
+insumos_productos,cantidad,numeric,NO
+insumos_productos,created_at,timestamp with time zone,YES
+items_factura_compra,id,uuid,NO
+items_factura_compra,tenant_id,uuid,NO
+items_factura_compra,factura_compra_id,uuid,YES
+items_factura_compra,tipo_item,text,NO
+items_factura_compra,item_id,uuid,NO
+items_factura_compra,descripcion,text,NO
+items_factura_compra,cantidad,numeric,NO
+items_factura_compra,precio_unitario,numeric,NO
+items_factura_compra,iva_porcentaje,numeric,YES
+items_factura_compra,descuento_porcentaje,numeric,YES
+items_factura_compra,subtotal,numeric,NO
+items_factura_compra,created_at,timestamp with time zone,YES
+items_factura_venta,id,uuid,NO
+items_factura_venta,tenant_id,uuid,NO
+items_factura_venta,factura_venta_id,uuid,YES
+items_factura_venta,tipo_item,text,NO
+items_factura_venta,item_id,uuid,NO
+items_factura_venta,descripcion,text,NO
+items_factura_venta,cantidad,numeric,NO
+items_factura_venta,precio_unitario,numeric,NO
+items_factura_venta,iva_porcentaje,numeric,YES
+items_factura_venta,descuento_porcentaje,numeric,YES
+items_factura_venta,subtotal,numeric,NO
+items_factura_venta,created_at,timestamp with time zone,YES
+lineas_fabricacion,id,uuid,NO
+lineas_fabricacion,tenant_id,uuid,NO
+lineas_fabricacion,fabricacion_id,uuid,YES
+lineas_fabricacion,producto_id,uuid,YES
+lineas_fabricacion,cantidad_a_producir,numeric,NO
+lineas_fabricacion,cantidad_producida,numeric,YES
+lineas_fabricacion,costo_linea,numeric,YES
+lineas_fabricacion,notas,text,YES
+lineas_fabricacion,created_at,timestamp with time zone,YES
+listas_precios,id,uuid,NO
+listas_precios,tenant_id,uuid,NO
+listas_precios,nombre,text,NO
+listas_precios,descripcion,text,YES
+listas_precios,moneda,text,YES
+listas_precios,estado,text,YES
+listas_precios,created_at,timestamp with time zone,YES
+movimientos_cuentas,id,uuid,NO
+movimientos_cuentas,tenant_id,uuid,NO
+movimientos_cuentas,cuenta_origen_id,uuid,NO
+movimientos_cuentas,cuenta_destino_id,uuid,NO
+movimientos_cuentas,fecha,date,NO
+movimientos_cuentas,monto,numeric,NO
+movimientos_cuentas,observacion,text,YES
+movimientos_cuentas,created_at,timestamp with time zone,YES
+notificaciones,id,uuid,NO
+notificaciones,tenant_id,uuid,NO
+notificaciones,tipo,text,NO
+notificaciones,referencia_id,uuid,YES
+notificaciones,mensaje,text,NO
+notificaciones,leida,boolean,NO
+notificaciones,created_at,timestamp with time zone,NO
+notificaciones,metadata,jsonb,YES
+otros_ingresos,id,uuid,NO
+otros_ingresos,tenant_id,uuid,NO
+otros_ingresos,cuenta_id,uuid,YES
+otros_ingresos,descripcion,text,NO
+otros_ingresos,importe,numeric,NO
+otros_ingresos,fecha,date,NO
+otros_ingresos,comprobante,text,YES
+otros_ingresos,notas,text,YES
+otros_ingresos,created_at,timestamp with time zone,YES
+otros_ingresos,tipo,text,YES
+otros_ingresos,anulado,boolean,YES
+otros_ingresos,codigo,text,YES
+percepciones_factura,id,uuid,NO
+percepciones_factura,tenant_id,uuid,NO
+percepciones_factura,factura_id,uuid,NO
+percepciones_factura,tipo_factura,text,NO
+percepciones_factura,tipo,text,NO
+percepciones_factura,numero_comprobante,text,YES
+percepciones_factura,importe,numeric,NO
+percepciones_factura,created_at,timestamp with time zone,YES
+planes,id,uuid,NO
+planes,nombre,text,NO
+planes,precio_mensual,numeric,YES
+planes,max_usuarios,integer,YES
+planes,max_operaciones_mes,integer,YES
+planes,features,jsonb,YES
+planes,activo,boolean,YES
+planes,created_at,timestamp with time zone,YES
+precios_por_producto,id,uuid,NO
+precios_por_producto,tenant_id,uuid,NO
+precios_por_producto,lista_precio_id,uuid,YES
+precios_por_producto,producto_id,uuid,YES
+precios_por_producto,precio,numeric,NO
+precios_por_producto,created_at,timestamp with time zone,YES
+productos,id,uuid,NO
+productos,tenant_id,uuid,NO
+productos,categoria_id,uuid,YES
+productos,codigo,text,YES
+productos,nombre,text,NO
+productos,descripcion,text,YES
+productos,precio_compra,numeric,YES
+productos,unidad_medida,text,YES
+productos,stock_actual,numeric,YES
+productos,stock_minimo,numeric,YES
+productos,estado,text,YES
+productos,created_at,timestamp with time zone,YES
+productos,updated_at,timestamp with time zone,YES
+productos,iva,numeric,NO
+proveedores,id,uuid,NO
+proveedores,tenant_id,uuid,NO
+proveedores,nombre_razon_social,text,NO
+proveedores,cuit,text,YES
+proveedores,condicion_iva,text,YES
+proveedores,domicilio_fiscal,text,YES
+proveedores,direccion,text,YES
+proveedores,localidad,text,YES
+proveedores,provincia,text,YES
+proveedores,codigo_postal,text,YES
+proveedores,telefono,text,YES
+proveedores,email,text,YES
+proveedores,web,text,YES
+proveedores,tipo_factura,text,YES
+proveedores,estado,text,YES
+proveedores,created_at,timestamp with time zone,YES
+proveedores,updated_at,timestamp with time zone,YES
+recetas,id,uuid,NO
+recetas,tenant_id,uuid,NO
+recetas,producto_id,uuid,YES
+recetas,insumo_id,uuid,YES
+recetas,cantidad_por_unidad,numeric,NO
+recetas,unidad_medida,text,YES
+recetas,created_at,timestamp with time zone,YES
+recibo_cobro_facturas,id,uuid,NO
+recibo_cobro_facturas,tenant_id,uuid,NO
+recibo_cobro_facturas,recibo_cobro_id,uuid,YES
+recibo_cobro_facturas,factura_venta_id,uuid,YES
+recibo_cobro_facturas,importe,numeric,NO
+recibo_cobro_facturas,created_at,timestamp with time zone,YES
+recibo_cobro_metodos,id,uuid,NO
+recibo_cobro_metodos,tenant_id,uuid,NO
+recibo_cobro_metodos,recibo_cobro_id,uuid,YES
+recibo_cobro_metodos,cuenta_id,uuid,YES
+recibo_cobro_metodos,importe,numeric,NO
+recibo_cobro_metodos,created_at,timestamp with time zone,YES
+recibo_cobro_retenciones,id,uuid,NO
+recibo_cobro_retenciones,tenant_id,uuid,NO
+recibo_cobro_retenciones,recibo_cobro_id,uuid,YES
+recibo_cobro_retenciones,tipo,text,NO
+recibo_cobro_retenciones,numero_comprobante,text,YES
+recibo_cobro_retenciones,importe,numeric,NO
+recibo_cobro_retenciones,created_at,timestamp with time zone,YES
+recibo_pago_facturas,id,uuid,NO
+recibo_pago_facturas,tenant_id,uuid,NO
+recibo_pago_facturas,recibo_pago_id,uuid,YES
+recibo_pago_facturas,factura_compra_id,uuid,YES
+recibo_pago_facturas,importe,numeric,NO
+recibo_pago_facturas,created_at,timestamp with time zone,YES
+recibo_pago_metodos,id,uuid,NO
+recibo_pago_metodos,tenant_id,uuid,NO
+recibo_pago_metodos,recibo_pago_id,uuid,YES
+recibo_pago_metodos,cuenta_id,uuid,YES
+recibo_pago_metodos,importe,numeric,NO
+recibo_pago_metodos,created_at,timestamp with time zone,YES
+recibo_pago_retenciones,id,uuid,NO
+recibo_pago_retenciones,tenant_id,uuid,NO
+recibo_pago_retenciones,recibo_pago_id,uuid,YES
+recibo_pago_retenciones,tipo,text,NO
+recibo_pago_retenciones,numero_comprobante,text,YES
+recibo_pago_retenciones,importe,numeric,NO
+recibo_pago_retenciones,created_at,timestamp with time zone,YES
+recibos_cobro,id,uuid,NO
+recibos_cobro,tenant_id,uuid,NO
+recibos_cobro,cliente_id,uuid,NO
+recibos_cobro,numero,text,YES
+recibos_cobro,fecha,date,NO
+recibos_cobro,estado,text,YES
+recibos_cobro,notas,text,YES
+recibos_cobro,created_at,timestamp with time zone,YES
+recibos_cobro,updated_at,timestamp with time zone,YES
+recibos_cobro,codigo,text,YES
+recibos_pago,id,uuid,NO
+recibos_pago,tenant_id,uuid,NO
+recibos_pago,proveedor_id,uuid,NO
+recibos_pago,numero,text,YES
+recibos_pago,fecha,date,NO
+recibos_pago,estado,text,YES
+recibos_pago,notas,text,YES
+recibos_pago,created_at,timestamp with time zone,YES
+recibos_pago,updated_at,timestamp with time zone,YES
+recibos_pago,codigo,text,YES
+servicios,id,uuid,NO
+servicios,tenant_id,uuid,NO
+servicios,categoria_id,uuid,YES
+servicios,codigo,text,YES
+servicios,nombre,text,NO
+servicios,descripcion,text,YES
+servicios,precio,numeric,YES
+servicios,iva,numeric,YES
+servicios,unidad,text,YES
+servicios,estado,text,YES
+servicios,created_at,timestamp with time zone,YES
+servicios,updated_at,timestamp with time zone,YES
+suscripciones,id,uuid,NO
+suscripciones,tenant_id,uuid,NO
+suscripciones,fecha_vencimiento,date,NO
+suscripciones,plan,character varying,YES
+suscripciones,monto,numeric,YES
+suscripciones,mp_payment_id,character varying,YES
+suscripciones,mp_status,character varying,YES
+suscripciones,created_at,timestamp with time zone,YES
+talleres,id,uuid,NO
+talleres,tenant_id,uuid,NO
+talleres,nombre,character varying,NO
+talleres,created_at,timestamp with time zone,YES
+tenants,id,uuid,NO
+tenants,nombre,text,NO
+tenants,razon_social,text,YES
+tenants,cuit,text,YES
+tenants,plan_id,uuid,YES
+tenants,slug,text,YES
+tenants,logo_url,text,YES
+tenants,domicilio_fiscal,text,YES
+tenants,direccion,text,YES
+tenants,localidad,text,YES
+tenants,provincia,text,YES
+tenants,codigo_postal,text,YES
+tenants,telefono,text,YES
+tenants,email,text,YES
+tenants,moneda,text,YES
+tenants,timezone,text,YES
+tenants,activo,boolean,YES
+tenants,trial_ends_at,timestamp with time zone,YES
+tenants,created_at,timestamp with time zone,YES
+ticket_comentarios,id,uuid,NO
+ticket_comentarios,tenant_id,uuid,NO
+ticket_comentarios,ticket_id,uuid,NO
+ticket_comentarios,contenido,text,NO
+ticket_comentarios,tipo_autor,text,NO
+ticket_comentarios,created_at,timestamp with time zone,NO
+tickets,id,uuid,NO
+tickets,tenant_id,uuid,NO
+tickets,codigo,text,NO
+tickets,titulo,text,NO
+tickets,descripcion,text,YES
+tickets,tipo,text,NO
+tickets,criticidad,text,NO
+tickets,estado,text,NO
+tickets,created_at,timestamp with time zone,NO
+tickets,updated_at,timestamp with time zone,NO
+usuario_tenant,id,uuid,NO
+usuario_tenant,user_id,uuid,YES
+usuario_tenant,tenant_id,uuid,YES
+usuario_tenant,rol,text,YES
+usuario_tenant,activo,boolean,YES
+usuario_tenant,created_at,timestamp with time zone,YES
+usuarios,id,uuid,NO
+usuarios,nombre,text,NO
+usuarios,email,text,NO
+usuarios,avatar_url,text,YES
+usuarios,activo,boolean,YES
+usuarios,last_login_at,timestamp with time zone,YES
+usuarios,created_at,timestamp with time zone,YES
+usuarios,tenant_id,uuid,YES
+usuarios,rol,text,YES

@@ -21,7 +21,7 @@ export default function CuentaFormComp({ initialData, onSubmit, submitLabel = 'G
   const [form, setForm] = useState<CuentaForm>({
     nombre: initialData?.nombre || '',
     tipo: initialData?.tipo || 'efectivo',
-    activo: initialData?.activo ?? true,
+    estado: initialData?.estado ?? 'activo',
   })
 
   function setField(k: keyof CuentaForm, v: string | boolean) {
@@ -89,8 +89,8 @@ export default function CuentaFormComp({ initialData, onSubmit, submitLabel = 'G
             <FieldWrapper label="Estado">
               <select
                 className={inputCls()}
-                value={form.activo ? 'activo' : 'inactivo'}
-                onChange={(e) => setField('activo', e.target.value === 'activo')}
+                value={form.estado ? 'activo' : 'inactivo'}
+                onChange={(e) => setField('estado', e.target.value === 'activo')}
               >
                 <option value="activo">Activo</option>
                 <option value="inactivo">Inactivo</option>

@@ -7,7 +7,7 @@ export interface Cuenta {
   tipo: TipoCuenta
   saldo_inicial: number
   saldo_actual: number
-  activo: boolean
+  estado: string
   created_at: string
   updated_at: string
 }
@@ -15,5 +15,5 @@ export interface Cuenta {
 export interface CuentaForm {
   nombre: string
   tipo: TipoCuenta
-  activo: boolean
+  estado: string
 }

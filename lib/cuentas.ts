@@ -48,7 +48,7 @@ export async function updateCuenta(id: string, form: CuentaForm) {
   const tenantId = await getTenantId()
 
   // Si se está desactivando, validar saldo 0
-  if (form.activo === false) {
+  if (form.estado === 'activo') {
     const { data: saldo } = await supabase.rpc('get_saldo_cuenta', { p_cuenta_id: id })
     if (Number(saldo ?? 0) !== 0) {
       throw new Error('No se puede desactivar una cuenta con saldo distinto de $0. Transferí el saldo a otra cuenta primero.')

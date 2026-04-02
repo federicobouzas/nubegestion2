@@ -31,7 +31,7 @@ export default function EditarCuentaPage() {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         <CuentaForm
-          initialData={{ nombre: cuenta.nombre, tipo: cuenta.tipo, activo: cuenta.activo }}
+          initialData={{ nombre: cuenta.nombre, tipo: cuenta.tipo, estado: cuenta.estado }}
           onSubmit={handleSubmit}
           submitLabel="Guardar cambios"
         />
