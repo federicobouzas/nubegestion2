@@ -51,7 +51,7 @@ export default function FacturaCompraForm({ onSubmit }: Props) {
 
   useEffect(() => {
     getProveedores({ estado: 'activo' }).then(d => setProveedores(d || []))
-    getProductos({ activo: true }).then(d => setProductos(d || []))
+    getProductos({ estado: 'activo' }).then(d => setProductos(d || []))
   }, [])
 
   function clearError(field: string) {
