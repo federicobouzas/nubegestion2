@@ -13,6 +13,7 @@ import ProductoAutocomplete from '@/components/shared/ProductoAutocomplete'
 import type { FacturaCompraForm as IFacturaCompraForm, ItemFacturaCompra } from '@/types/compras'
 import type { Proveedor } from '@/types/proveedores'
 import type { Producto } from '@/types/productos'
+import type { ItemCatalogo } from '@/types/servicios'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -70,16 +71,17 @@ export default function FacturaCompraForm({ onSubmit }: Props) {
     if (p) setField('tipo', p.condicion_iva === 'RI' ? 'A' : 'B')
   }
 
-  function selectProductoItem(idx: number, producto: Producto | null) {
+  function selectProductoItem(idx: number, item: ItemCatalogo | null) {
     setForm(p => {
       const items = [...p.items]
-      if (producto) {
+      if (item) {
+        const prod = productos.find(pr => pr.id === item.id)
         items[idx] = {
           ...items[idx],
-          item_id: producto.id,
-          descripcion: producto.nombre,
-          precio_unitario: producto.precio_compra ?? producto.precio_venta,
-          iva_porcentaje: producto.iva,
+          item_id: item.id,
+          descripcion: item.nombre,
+          precio_unitario: prod?.precio_compra ?? item.precio_venta ?? 0,
+          iva_porcentaje: item.iva,
         }
       } else {
         items[idx] = { ...items[idx], item_id: '', descripcion: '' }
@@ -88,7 +90,7 @@ export default function FacturaCompraForm({ onSubmit }: Props) {
       i.subtotal = Number(i.cantidad) * Number(i.precio_unitario) * (1 - Number(i.descuento_porcentaje) / 100)
       return { ...p, items }
     })
-    setItemLabels(prev => { const next = [...prev]; next[idx] = producto?.nombre || ''; return next })
+    setItemLabels(prev => { const next = [...prev]; next[idx] = item?.nombre || ''; return next })
     clearError(`item_${idx}_descripcion`)
     clearError(`item_${idx}_precio`)
   }
@@ -244,7 +246,7 @@ export default function FacturaCompraForm({ onSubmit }: Props) {
                     <tr key={idx} className="border-b border-[#F1F0EE] last:border-0">
                       <td className="px-3 py-2 min-w-[180px] align-top">
                         <ProductoAutocomplete
-                          productos={productos}
+                          items={productos.map(p => ({ id: p.id, tipo: 'producto' as const, nombre: p.nombre, codigo: p.codigo, iva: p.iva, precio_venta: p.precio_venta, stock_actual: p.stock_actual, stock_minimo: p.stock_minimo, unidad_medida: p.unidad_medida }))}
                           value={item.item_id}
                           label={itemLabels[idx]}
                           error={errors[`item_${idx}_descripcion`]}
