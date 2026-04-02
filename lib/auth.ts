@@ -1,5 +1,4 @@
 import { createClient } from './supabase'
-import { clearTenantCache } from './tenant'
 
 export async function signIn(email: string, password: string) {
   const supabase = createClient()
@@ -23,7 +22,6 @@ export async function signUp(email: string, password: string, nombre: string, em
 
 export async function signOut() {
   const supabase = createClient()
-  clearTenantCache();
   await supabase.auth.signOut()
 }
 

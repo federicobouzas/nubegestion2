@@ -2,6 +2,8 @@ import Sidebar from '@/components/layout/Sidebar'
 import SuscripcionAlert from '@/components/suscripcion/SuscripcionAlert'
 import { getSuscripcionInfo } from '@/lib/suscripcion'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const suscripcionInfo = await getSuscripcionInfo()
 
