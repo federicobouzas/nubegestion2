@@ -30,7 +30,7 @@ export default function SaldosPage() {
         const tenantId = await getTenantId()
 
         const [cuentasData, ccCli, ccProv] = await Promise.all([
-          getCuentas({ activo: true }),
+          getCuentas({ estado: 'activo' }),
           supabase.rpc('get_cc_clientes', { p_tenant_id: tenantId }),
           supabase.rpc('get_cc_proveedores', { p_tenant_id: tenantId }),
         ])

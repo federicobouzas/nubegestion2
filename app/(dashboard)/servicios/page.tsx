@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Plus, Pencil } from 'lucide-react'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import Topbar from '@/components/shared/Topbar'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import ListHeader from '@/components/shared/ListHeader'
 import Badge from '@/components/shared/Badge'
 
@@ -78,7 +79,7 @@ export default function ServiciosPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">Cargando...</td></tr>
+                <TableSkeleton cols={['code','medium','short','badge','actions']} />
               ) : data?.length === 0 ? (
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">Sin servicios registrados.</td></tr>
               ) : data?.map((s: any) => (

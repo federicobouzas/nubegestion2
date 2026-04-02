@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Plus, Eye } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import { getFabricaciones } from '@/lib/produccion'
 import { formatMonto } from '@/lib/gastos'
 import type { Fabricacion } from '@/types/produccion'
@@ -63,7 +64,7 @@ export default function FabricacionPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">Cargando...</td></tr>
+                <TableSkeleton cols={['code','medium','date','date','date','short','short','amount','badge','actions']} />
               ) : data.length === 0 ? (
                 <tr><td colSpan={10} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">No hay fabricaciones.</td></tr>
               ) : data.map((fab: any) => (

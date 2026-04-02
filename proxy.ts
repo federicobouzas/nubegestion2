@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Chequeo de suscripción — solo para páginas del dashboard, excluyendo /suscripcion/*
+  // Chequeo de plan — solo para páginas del dashboard, excluyendo /suscripcion/* y /api/plan/*
   if (user && !isAuth && !pathname.startsWith('/suscripcion') && !pathname.startsWith('/api/')) {
     const { data: usuario } = await supabase
       .from('usuarios')
@@ -46,24 +46,23 @@ export async function proxy(request: NextRequest) {
       .single()
 
     if (usuario?.tenant_id) {
-      const { data: suscripcion } = await supabase
-        .from('suscripciones')
-        .select('fecha_vencimiento')
-        .eq('tenant_id', usuario.tenant_id)
-        .order('fecha_vencimiento', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      const { data: tenant } = await supabase
+        .from('tenants')
+        .select('plan, plan_ends_at, plan_choice_made')
+        .eq('id', usuario.tenant_id)
+        .single()
 
-      const vencida = !suscripcion || (() => {
-        const hoy = new Date()
-        hoy.setHours(0, 0, 0, 0)
-        const venc = new Date(suscripcion.fecha_vencimiento + 'T00:00:00')
-        venc.setHours(0, 0, 0, 0)
-        return venc < hoy
-      })()
+      const plan = tenant?.plan ?? 'free'
 
-      if (vencida) {
-        return NextResponse.redirect(new URL('/suscripcion', request.url))
+      // Free nunca redirige
+      if (plan !== 'free' && tenant?.plan_ends_at) {
+        const now = new Date()
+        const endsAt = new Date(tenant.plan_ends_at)
+        const diasVencido = Math.floor((now.getTime() - endsAt.getTime()) / (1000 * 60 * 60 * 24))
+
+        if (diasVencido > 7 && !tenant.plan_choice_made) {
+          return NextResponse.redirect(new URL('/suscripcion', request.url))
+        }
       }
     }
   }

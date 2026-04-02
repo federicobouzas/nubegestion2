@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { Plus, Eye, Pencil } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import ListHeader from '@/components/shared/ListHeader'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import { useListState } from '@/hooks/useListState'
@@ -79,7 +80,7 @@ export default function InsumosPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">Cargando...</td></tr>
+                <TableSkeleton cols={['medium','medium','short','amount','short','short','badge','actions']} />
               ) : data.length === 0 ? (
                 <tr><td colSpan={8} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">No hay insumos.</td></tr>
               ) : data.map((ins: any) => (

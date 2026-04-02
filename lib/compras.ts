@@ -1,5 +1,6 @@
 import { createClient } from './supabase'
 import { getTenantId } from '@/lib/tenant'
+import { checkPlanLimit } from '@/lib/plan-client'
 import type { FacturaCompraForm } from '@/types/compras'
 
 export async function getFacturasCompra(search?: string) {
@@ -72,6 +73,8 @@ export async function getPercepcionesFacturaCompra(factura_id: string) {
 }
 
 export async function createFacturaCompra(form: FacturaCompraForm) {
+  await checkPlanLimit()
+
   const supabase = createClient()
   const tenantId = await getTenantId()
 

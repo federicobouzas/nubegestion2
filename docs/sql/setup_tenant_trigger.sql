@@ -13,8 +13,8 @@ BEGIN
   v_empresa := COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'empresa'), ''), 'Mi Empresa');
 
   -- 1. Crear tenant
-  INSERT INTO public.tenants (nombre, email, activo, trial_ends_at)
-  VALUES (v_empresa, NEW.email, true, now() + interval '30 days')
+ INSERT INTO public.tenants (nombre, email, activo, trial_ends_at, plan, plan_choice_made)
+  VALUES (v_empresa, NEW.email, true, now() + interval '30 days', 'free', false)
   RETURNING id INTO v_tenant_id;
 
   -- 2. Crear registro en usuarios

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import ListHeader from '@/components/shared/ListHeader'
 import { formatMonto, deleteOtroIngreso, TIPOS_INGRESO } from '@/lib/otros-ingresos'
 import { getCuentas } from '@/lib/cuentas'
@@ -95,7 +96,14 @@ export default function OtrosIngresosPage() {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
-          <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
+          <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
+            <table className="w-full border-collapse">
+              <thead><tr className="border-b border-[#E5E4E0] bg-[#F9F9F8]">
+                {['Código','Fecha','Tipo','Descripción','Cuenta','Importe',''].map((h,i)=><th key={i} className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-2.5 text-left font-medium">{h}</th>)}
+              </tr></thead>
+              <tbody><TableSkeleton cols={['code','date','medium','wide','medium','amount','actions']} /></tbody>
+            </table>
+          </div>
         ) : (
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
             <table className="w-full border-collapse">

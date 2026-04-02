@@ -22,7 +22,8 @@
       "Bash(sed -i '' \"s/router\\\\.push\\(''\\\\/compras''\\)/router.back\\(\\)/g\" /Users/federico/nubegestion/app/\\\\\\(dashboard\\\\\\)/compras/nueva/page.tsx)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
-      "Bash(head:*)"
+      "Bash(head:*)",
+      "Bash(python3:*)"
     ]
   }
 }

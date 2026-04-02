@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import { getCategoriasGasto, deleteCategoriaGasto, TIPOS_CATEGORIA } from '@/lib/gastos'
 import type { CategoriaGasto } from '@/types/gastos'
 
@@ -63,7 +64,14 @@ export default function CategoriasGastoPage() {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
         {loading ? (
-          <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
+          <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
+            <table className="w-full border-collapse">
+              <thead><tr className="border-b border-[#E5E4E0] bg-[#F9F9F8]">
+                {['Tipo','Descripción','Estado',''].map((h,i)=><th key={i} className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-2.5 text-left font-medium">{h}</th>)}
+              </tr></thead>
+              <tbody><TableSkeleton cols={['badge','medium','badge','actions']} /></tbody>
+            </table>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="bg-white border border-[#E5E4E0] rounded-xl p-10 text-center text-[#A8A49D] text-sm">
             No hay categorías. <Link href="/categorias-gastos/nueva" className="text-[#F2682E] font-semibold hover:underline">Crear la primera</Link>

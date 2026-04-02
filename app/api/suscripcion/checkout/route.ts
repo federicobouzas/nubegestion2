@@ -32,13 +32,25 @@ export async function POST(req: NextRequest) {
           const nuevaFecha = new Date()
           nuevaFecha.setDate(nuevaFecha.getDate() + 30)
 
-          await supabase.from('suscripciones').insert({
-            tenant_id: usuario.tenant_id,
-            fecha_vencimiento: nuevaFecha.toISOString().split('T')[0],
-            monto: body.transaction_amount,
-            mp_payment_id: String(payment.id),
-            mp_status: payment.status,
-          })
+          const plan = body.metadata?.plan || 'pro'
+
+          await Promise.all([
+            supabase.from('suscripciones').insert({
+              tenant_id: usuario.tenant_id,
+              fecha_vencimiento: nuevaFecha.toISOString().split('T')[0],
+              monto: body.transaction_amount,
+              mp_payment_id: String(payment.id),
+              mp_status: payment.status,
+            }),
+            supabase
+              .from('tenants')
+              .update({
+                plan,
+                plan_ends_at: nuevaFecha.toISOString(),
+                plan_choice_made: false,
+              })
+              .eq('id', usuario.tenant_id),
+          ])
         }
       }
     } catch (e) {
