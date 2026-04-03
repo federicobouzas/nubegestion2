@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estás al 80% de tu límite</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0a; font-family: 'Sora', Arial, sans-serif; padding: 32px 16px; }
+    .wrapper { max-width: 600px; margin: 0 auto; }
+    .card { background: #0d0d0d; border-radius: 16px; overflow: hidden; border: 1px solid #222; }
+    .header { background: #111; padding: 40px 40px 32px; border-bottom: 1px solid #222; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+    .logo-icon { width: 32px; height: 32px; background: #FF6B00; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+    .logo-name { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+    .badge { display: inline-block; background: #FF6B0020; border: 1px solid #FF6B0040; border-radius: 6px; padding: 4px 10px; margin-bottom: 14px; }
+    .badge-text { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: #FF6B00; text-transform: uppercase; }
+    .headline { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.25; letter-spacing: -0.5px; margin-bottom: 14px; }
+    .subtext { font-size: 15px; color: #aaa; line-height: 1.7; }
+    .subtext strong { color: #fff; }
+    .body { padding: 32px 40px; }
+    .limit-box { background: #181818; border: 1px solid #2a2a2a; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+    .limit-current { padding: 16px 20px; border-bottom: 1px solid #222; }
+    .limit-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .limit-plan-name { font-size: 13px; color: #666; }
+    .limit-plan-val { font-size: 13px; font-weight: 600; color: #fff; }
+    .bar-bg { height: 8px; background: #2a2a2a; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+    .bar-fill { height: 100%; background: #FF6B00; border-radius: 4px; width: {{progreso_pct}}%; }
+    .bar-labels { display: flex; justify-content: space-between; }
+    .bar-used { font-size: 11px; color: #666; }
+    .bar-left { font-size: 11px; color: #FF6B00; font-weight: 600; }
+    .limit-pro { padding: 16px 20px; background: #0a0a0a; }
+    .limit-pro-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .limit-pro-name { font-size: 13px; color: #aaa; }
+    .limit-pro-val { font-size: 13px; font-weight: 700; color: #FF6B00; }
+    .limit-pro-extras { font-size: 12px; color: #555; }
+    .metrics { display: flex; gap: 10px; margin-bottom: 28px; }
+    .metric { flex: 1; background: #181818; border-radius: 8px; padding: 12px; text-align: center; border: 1px solid #2a2a2a; }
+    .metric-val { font-size: 20px; font-weight: 700; color: #FF6B00; margin-bottom: 4px; }
+    .metric-label { font-size: 11px; color: #555; }
+    .cta-wrap { text-align: center; margin-bottom: 28px; }
+    .cta { display: inline-block; background: #FF6B00; color: #fff; font-family: 'Sora', Arial, sans-serif; font-size: 14px; font-weight: 600; padding: 14px 36px; border-radius: 10px; text-decoration: none; }
+    .cta-note { font-size: 12px; color: #444; margin-top: 10px; }
+    .divider { border: none; border-top: 1px solid #1a1a1a; margin-bottom: 20px; }
+    .footer-links { text-align: center; margin-bottom: 12px; }
+    .footer-links a { font-size: 12px; color: #444; text-decoration: none; margin: 0 10px; }
+    .footer-copy { text-align: center; font-size: 11px; color: #333; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <div class="header">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9L7 13L15 5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span class="logo-name">Nube Gestión</span>
+        </div>
+        <div class="badge"><span class="badge-text">Atención</span></div>
+        <h1 class="headline">Estás al {{progreso_pct}}% de<br>tu límite mensual</h1>
+        <p class="subtext">Hola <strong>{{nombre}}</strong>, usaste <strong>{{facturas_usadas}} de {{limite_plan}} facturas</strong> disponibles en el plan Free este mes. Cuando llegues al límite, no podrás emitir más hasta el próximo ciclo.</p>
+      </div>
+
+      <div class="body">
+        <div class="limit-box">
+          <div class="limit-current">
+            <div class="limit-row">
+              <span class="limit-plan-name">Plan Free</span>
+              <span class="limit-plan-val">{{limite_plan}} facturas/mes</span>
+            </div>
+            <div class="bar-bg">
+              <div class="bar-fill"></div>
+            </div>
+            <div class="bar-labels">
+              <span class="bar-used">{{facturas_usadas}} usadas</span>
+              <span class="bar-left">{{facturas_restantes}} restantes</span>
+            </div>
+          </div>
+          <div class="limit-pro">
+            <div class="limit-pro-row">
+              <span class="limit-pro-name">Plan Pro</span>
+              <span class="limit-pro-val">500 facturas/mes</span>
+            </div>
+            <div class="limit-pro-extras">+ Usuarios ilimitados · Fabricación · Soporte prioritario</div>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-val">500</div>
+            <div class="metric-label">facturas/mes</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">∞</div>
+            <div class="metric-label">usuarios</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">~$20</div>
+            <div class="metric-label">por mes</div>
+          </div>
+        </div>
+
+        <div class="cta-wrap">
+          <a href="https://www.nubegestion.com.ar/planes" class="cta">Pasarme a Pro →</a>
+          <p class="cta-note">Sin permanencia · Cancelás cuando quieras</p>
+        </div>
+
+        <hr class="divider" />
+        <div class="footer-links">
+          <a href="https://www.nubegestion.com.ar/planes">Ver todos los planes</a>
+          <a href="https://www.nubegestion.com.ar/ayuda">Centro de ayuda</a>
+          <a href="https://www.nubegestion.com.ar/unsubscribe?email={{email}}">Dejar de recibir emails</a>
+        </div>
+        <p class="footer-copy">© 2026 Nube Gestión · Argentina</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>¿Cómo viene todo?</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0a; font-family: 'Sora', Arial, sans-serif; padding: 32px 16px; }
+    .wrapper { max-width: 600px; margin: 0 auto; }
+    .card { background: #0d0d0d; border-radius: 16px; overflow: hidden; border: 1px solid #222; }
+    .header { background: #111; padding: 40px 40px 32px; border-bottom: 1px solid #222; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+    .logo-icon { width: 32px; height: 32px; background: #FF6B00; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+    .logo-name { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 2px; color: #FF6B00; text-transform: uppercase; margin-bottom: 14px; }
+    .headline { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.25; letter-spacing: -0.5px; margin-bottom: 14px; }
+    .subtext { font-size: 15px; color: #aaa; line-height: 1.7; }
+    .body { padding: 32px 40px; }
+    .progress-box { background: #181818; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+    .progress-label { font-size: 13px; font-weight: 600; color: #FF6B00; margin-bottom: 10px; }
+    .progress-bar-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .progress-bar-bg { flex: 1; height: 6px; background: #2a2a2a; border-radius: 3px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: #FF6B00; border-radius: 3px; width: {{progreso_pct}}%; }
+    .progress-count { font-size: 12px; color: #666; white-space: nowrap; }
+    .progress-detail { font-size: 12px; color: #555; }
+    .body-text { font-size: 15px; color: #aaa; line-height: 1.7; margin-bottom: 24px; }
+    .tip-box { background: #FF6B0010; border: 1px solid #FF6B0030; border-radius: 10px; padding: 16px 20px; margin-bottom: 28px; }
+    .tip-label { font-size: 13px; color: #FF6B00; font-weight: 600; margin-bottom: 4px; }
+    .tip-text { font-size: 13px; color: #888; line-height: 1.6; }
+    .cta-wrap { text-align: center; margin-bottom: 28px; display: flex; gap: 12px; justify-content: center; }
+    .cta-primary { display: inline-block; background: #FF6B00; color: #fff; font-family: 'Sora', Arial, sans-serif; font-size: 14px; font-weight: 600; padding: 13px 28px; border-radius: 10px; text-decoration: none; }
+    .cta-secondary { display: inline-block; background: transparent; color: #666; font-family: 'Sora', Arial, sans-serif; font-size: 14px; padding: 13px 20px; border-radius: 10px; text-decoration: none; border: 1px solid #333; }
+    .divider { border: none; border-top: 1px solid #1a1a1a; margin-bottom: 20px; }
+    .footer-links { text-align: center; margin-bottom: 12px; }
+    .footer-links a { font-size: 12px; color: #444; text-decoration: none; margin: 0 10px; }
+    .footer-copy { text-align: center; font-size: 11px; color: #333; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <div class="header">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9L7 13L15 5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span class="logo-name">Nube Gestión</span>
+        </div>
+        <div class="eyebrow">3 días con nosotros</div>
+        <h1 class="headline">¿Cómo viene<br>todo, {{nombre}}?</h1>
+        <p class="subtext">Ya pasaron 3 días desde que te registraste. Queremos asegurarnos de que arranques bien, sin trabas.</p>
+      </div>
+
+      <div class="body">
+        <div class="progress-box">
+          <div class="progress-label">Tu progreso</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill"></div>
+            </div>
+            <span class="progress-count">{{pasos_completados}} de 3 pasos</span>
+          </div>
+          <div class="progress-detail">{{detalle_progreso}}</div>
+        </div>
+
+        <p class="body-text">Si tenés alguna duda o te trabaste en algo, respondé este email directamente. Lo leemos nosotros, no un bot.</p>
+
+        <div class="tip-box">
+          <div class="tip-label">Tip del día</div>
+          <div class="tip-text">Podés importar tu base de clientes desde un Excel. Ahorrás tiempo y evitás cargar uno por uno.</div>
+        </div>
+
+        <div class="cta-wrap">
+          <a href="https://www.nubegestion.com.ar/dashboard" class="cta-primary">Continuar setup →</a>
+          <a href="https://www.nubegestion.com.ar/ayuda" class="cta-secondary">Ver tutoriales</a>
+        </div>
+
+        <hr class="divider" />
+        <div class="footer-links">
+          <a href="https://www.nubegestion.com.ar/ayuda">Centro de ayuda</a>
+          <a href="https://www.nubegestion.com.ar/planes">Ver planes</a>
+          <a href="https://www.nubegestion.com.ar/unsubscribe?email={{email}}">Dejar de recibir emails</a>
+        </div>
+        <p class="footer-copy">© 2026 Nube Gestión · Argentina</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

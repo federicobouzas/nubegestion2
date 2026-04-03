@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resumen mensual — Nube Gestión</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0a; font-family: 'Sora', Arial, sans-serif; padding: 32px 16px; }
+    .wrapper { max-width: 600px; margin: 0 auto; }
+    .card { background: #0d0d0d; border-radius: 16px; overflow: hidden; border: 1px solid #222; }
+    .header { background: #111; padding: 40px 40px 32px; border-bottom: 1px solid #222; }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+    .logo-icon { width: 32px; height: 32px; background: #FF6B00; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+    .logo-name { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+    .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 2px; color: #FF6B00; text-transform: uppercase; margin-bottom: 14px; }
+    .headline { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 14px; line-height: 1.25; letter-spacing: -0.5px; }
+    .subtext { font-size: 15px; color: #aaa; line-height: 1.7; }
+    .subtext strong { color: #fff; }
+    .body { padding: 32px 40px; }
+    .section-label { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: #555; margin-bottom: 14px; }
+    .metrics-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin-bottom: 28px; }
+    .metrics-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 28px; }
+    .metric { background: #141414; border: 1px solid #222; border-radius: 10px; padding: 14px; text-align: center; }
+    .metric-val { font-size: 22px; font-weight: 700; color: #FF6B00; margin-bottom: 4px; }
+    .metric-val-lg { font-size: 18px; font-weight: 700; color: #FF6B00; margin-bottom: 4px; }
+    .metric-label { font-size: 11px; color: #555; }
+    .tesoreria { background: #141414; border: 1px solid #222; border-radius: 10px; overflow: hidden; margin-bottom: 28px; }
+    .tesrow { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #1e1e1e; }
+    .tesrow-footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #0a0a0a; }
+    .tesrow-label { font-size: 13px; color: #888; }
+    .tesrow-footer-label { font-size: 13px; font-weight: 600; color: #fff; }
+    .val-green { font-size: 13px; font-weight: 600; color: #4ade80; }
+    .val-red { font-size: 13px; font-weight: 600; color: #f87171; }
+    .val-orange { font-size: 15px; font-weight: 700; color: #FF6B00; }
+    .cc-val-green { font-size: 18px; font-weight: 700; color: #4ade80; }
+    .cc-val-red { font-size: 18px; font-weight: 700; color: #f87171; }
+    .cc-label { font-size: 11px; color: #555; margin-bottom: 6px; }
+    .cta-wrap { text-align: center; margin-bottom: 28px; }
+    .cta { display: inline-block; background: #FF6B00; color: #fff; font-family: 'Sora', Arial, sans-serif; font-size: 14px; font-weight: 600; padding: 14px 32px; border-radius: 10px; text-decoration: none; }
+    .divider { border: none; border-top: 1px solid #1a1a1a; margin-bottom: 20px; }
+    .footer-links { display: flex; gap: 20px; justify-content: center; margin-bottom: 12px; }
+    .footer-links a { font-size: 12px; color: #444; text-decoration: none; }
+    .footer-copy { text-align: center; font-size: 11px; color: #333; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <div class="header">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9L7 13L15 5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span class="logo-name">Nube Gestión</span>
+        </div>
+        <div class="eyebrow">Resumen de {{mes_nombre}} {{anio}}</div>
+        <h1 class="headline">Así le fue a tu negocio<br>el mes pasado</h1>
+        <p class="subtext">Hola <strong>{{nombre}}</strong>, acá va el resumen de actividad de <strong>{{empresa}}</strong> en {{mes_nombre}}.</p>
+      </div>
+      <div class="body">
+        <p class="section-label">Facturación</p>
+        <div class="metrics-3">
+          <div class="metric">
+            <div class="metric-val">{{facturas_emitidas}}</div>
+            <div class="metric-label">facturas emitidas</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val">{{facturas_compra}}</div>
+            <div class="metric-label">facturas de compra</div>
+          </div>
+          <div class="metric">
+            <div class="metric-val-lg">${{total_facturado}}</div>
+            <div class="metric-label">total facturado</div>
+          </div>
+        </div>
+
+        <p class="section-label">Tesorería</p>
+        <div class="tesoreria">
+          <div class="tesrow">
+            <span class="tesrow-label">Cobros del mes</span>
+            <span class="val-green">+ ${{total_cobros}}</span>
+          </div>
+          <div class="tesrow">
+            <span class="tesrow-label">Pagos del mes</span>
+            <span class="val-red">- ${{total_pagos}}</span>
+          </div>
+          <div class="tesrow-footer">
+            <span class="tesrow-footer-label">Saldo al cierre</span>
+            <span class="val-orange">${{saldo_cierre}}</span>
+          </div>
+        </div>
+
+        <p class="section-label">Cuentas corrientes</p>
+        <div class="metrics-2">
+          <div class="metric" style="text-align: left;">
+            <div class="cc-label">A cobrar (clientes)</div>
+            <div class="cc-val-green">${{saldo_clientes}}</div>
+          </div>
+          <div class="metric" style="text-align: left;">
+            <div class="cc-label">A pagar (proveedores)</div>
+            <div class="cc-val-red">${{saldo_proveedores}}</div>
+          </div>
+        </div>
+
+        <div class="cta-wrap">
+          <a href="https://www.nubegestion.com.ar/reportes" class="cta">Ver reporte completo →</a>
+        </div>
+        <hr class="divider" />
+        <div class="footer-links">
+          <a href="https://www.nubegestion.com.ar/ayuda">Centro de ayuda</a>
+          <a href="https://www.nubegestion.com.ar/unsubscribe?email={{email}}">Dejar de recibir emails</a>
+        </div>
+        <p class="footer-copy">© 2025 Nube Gestión · Buenos Aires, Argentina</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
