@@ -14,8 +14,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <NextTopLoader color="#F97316" showSpinner={false} />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        {planInfo.needsChoiceScreen ? (
-          <PlanChoiceScreen plan={planInfo.plan} diasVencido={planInfo.diasVencido} />
+        {planInfo.isBlocked ? (
+          <PlanChoiceScreen
+            plan={planInfo.plan}
+            planNombre={planInfo.planNombre}
+            diasVencido={planInfo.diasVencido}
+          />
         ) : (
           <SuscripcionAlert info={planInfo}>
             {children}

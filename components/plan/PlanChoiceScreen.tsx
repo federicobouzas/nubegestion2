@@ -6,16 +6,11 @@ import type { Plan } from '@/lib/plan'
 
 interface Props {
   plan: Plan
+  planNombre: string
   diasVencido: number
 }
 
-const PLAN_LABEL: Record<Plan, string> = {
-  free: 'Gratuito',
-  pro: 'Pro',
-  business: 'Business',
-}
-
-export default function PlanChoiceScreen({ plan, diasVencido }: Props) {
+export default function PlanChoiceScreen({ plan, planNombre, diasVencido }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -46,7 +41,7 @@ export default function PlanChoiceScreen({ plan, diasVencido }: Props) {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-700 text-[11.5px] font-medium mb-4">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-            Plan {PLAN_LABEL[plan]} vencido hace {diasVencido} día{diasVencido === 1 ? '' : 's'}
+            Plan {planNombre} vencido hace {diasVencido} día{diasVencido === 1 ? '' : 's'}
           </div>
           <h1 className="text-[22px] font-bold text-[#18181B] mb-2">
             ¿Cómo querés continuar?
@@ -64,7 +59,7 @@ export default function PlanChoiceScreen({ plan, diasVencido }: Props) {
               <div className="w-8 h-8 rounded-[8px] bg-[#FEF0EA] flex items-center justify-center">
                 <Zap size={15} className="text-[#F2682E]" strokeWidth={2.2} />
               </div>
-              <span className="text-[13px] font-semibold text-[#18181B]">Renovar plan {PLAN_LABEL[plan]}</span>
+              <span className="text-[13px] font-semibold text-[#18181B]">Renovar plan {planNombre}</span>
             </div>
             <ul className="flex flex-col gap-2 mb-6 flex-1">
               {plan === 'pro' && (

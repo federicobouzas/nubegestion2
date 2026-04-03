@@ -3,12 +3,6 @@ import Topbar from '@/components/shared/Topbar'
 import PlanSelector from '@/components/suscripcion/PlanSelector'
 import { getPlanInfo, getPlanes, getFacturasLimitInfo } from '@/lib/plan'
 
-const PLAN_LABEL: Record<string, string> = {
-  free: 'Gratuito',
-  pro: 'Pro',
-  business: 'Business',
-}
-
 interface Props {
   searchParams: Promise<{ limite?: string }>
 }
@@ -37,7 +31,7 @@ export default async function SuscripcionPage({ searchParams }: Props) {
                 <span className="font-semibold">
                   {limitInfo?.limit ?? '—'} facturas por mes
                 </span>{' '}
-                de tu plan <span className="font-semibold">{PLAN_LABEL[currentInfo.plan] ?? currentInfo.plan}</span>.{' '}
+                de tu plan <span className="font-semibold">{currentInfo.planNombre}</span>.{' '}
                 Mejorá el plan para continuar.
               </p>
             </div>

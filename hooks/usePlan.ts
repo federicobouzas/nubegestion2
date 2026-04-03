@@ -4,12 +4,12 @@ import type { PlanInfo } from '@/lib/plan'
 
 const DEFAULT: PlanInfo = {
   plan: 'free',
+  planNombre: 'Gratuito',
   planEndsAt: null,
-  planChoiceMade: false,
   isActive: true,
   diasVencido: 0,
   inGracePeriod: false,
-  needsChoiceScreen: false,
+  isBlocked: false,
 }
 
 export function usePlan() {

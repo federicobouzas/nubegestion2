@@ -14,6 +14,7 @@ export interface PlanDef {
 
 export interface PlanInfo {
   plan: Plan
+  planNombre: string
   planEndsAt: string | null
   isActive: boolean
   diasVencido: number
@@ -25,6 +26,12 @@ const FALLBACK_LIMITS: Record<Plan, Pick<PlanDef, 'facturasMes' | 'usuarios'>> =
   free:     { facturasMes: 50,  usuarios: 1 },
   pro:      { facturasMes: 300, usuarios: 3 },
   business: { facturasMes: null, usuarios: null },
+}
+
+const FALLBACK_NOMBRE: Record<Plan, string> = {
+  free:     'Gratuito',
+  pro:      'Pro',
+  business: 'Business',
 }
 
 export function getPlanLimits(plan: Plan) {
@@ -55,10 +62,10 @@ export async function getPlanes(): Promise<PlanDef[]> {
   }
 }
 
-function computePlanInfo(plan: Plan, planEndsAt: string | null): PlanInfo {
+function computePlanInfo(plan: Plan, planNombre: string, planEndsAt: string | null): PlanInfo {
   // Free nunca vence
   if (plan === 'free') {
-    return { plan, planEndsAt: null, isActive: true, diasVencido: 0, inGracePeriod: false, isBlocked: false }
+    return { plan, planNombre, planEndsAt: null, isActive: true, diasVencido: 0, inGracePeriod: false, isBlocked: false }
   }
 
   const now = new Date()
@@ -66,7 +73,7 @@ function computePlanInfo(plan: Plan, planEndsAt: string | null): PlanInfo {
 
   // Pro/Business sin fecha — tratar como vencido desde hoy (no debería pasar)
   if (!endsAt) {
-    return { plan, planEndsAt: null, isActive: false, diasVencido: 0, inGracePeriod: false, isBlocked: true }
+    return { plan, planNombre, planEndsAt: null, isActive: false, diasVencido: 0, inGracePeriod: false, isBlocked: true }
   }
 
   const isActive = endsAt > now
@@ -77,7 +84,7 @@ function computePlanInfo(plan: Plan, planEndsAt: string | null): PlanInfo {
   const inGracePeriod = !isActive && diasVencido >= 1 && diasVencido <= 7
   const isBlocked     = !isActive && diasVencido > 7
 
-  return { plan, planEndsAt, isActive, diasVencido, inGracePeriod, isBlocked }
+  return { plan, planNombre, planEndsAt, isActive, diasVencido, inGracePeriod, isBlocked }
 }
 
 export async function getPlanInfo(): Promise<PlanInfo> {
@@ -101,14 +108,24 @@ export async function getPlanInfo(): Promise<PlanInfo> {
       .single()
 
     const plan: Plan = (tenant?.plan as Plan) || 'free'
-    return computePlanInfo(plan, tenant?.plan_ends_at ?? null)
+
+    // Buscar nombre del plan en la BD
+    const { data: planDef } = await supabase
+      .from('planes')
+      .select('nombre')
+      .eq('slug', plan)
+      .single()
+
+    const planNombre = planDef?.nombre ?? FALLBACK_NOMBRE[plan]
+
+    return computePlanInfo(plan, planNombre, tenant?.plan_ends_at ?? null)
   } catch {
     return makeFreeInfo()
   }
 }
 
 function makeFreeInfo(): PlanInfo {
-  return { plan: 'free', planEndsAt: null, isActive: true, diasVencido: 0, inGracePeriod: false, isBlocked: false }
+  return { plan: 'free', planNombre: 'Gratuito', planEndsAt: null, isActive: true, diasVencido: 0, inGracePeriod: false, isBlocked: false }
 }
 
 export async function getFacturasLimitInfo(): Promise<{ limit: number | null; total: number }> {
@@ -132,7 +149,7 @@ export async function getFacturasLimitInfo(): Promise<{ limit: number | null; to
       .single()
 
     const plan: Plan = (tenant?.plan as Plan) || 'free'
-    const { isActive } = computePlanInfo(plan, tenant?.plan_ends_at ?? null)
+    const { isActive } = computePlanInfo(plan, FALLBACK_NOMBRE[plan], tenant?.plan_ends_at ?? null)
 
     if (plan === 'business' && isActive) return { limit: null, total: 0 }
 
