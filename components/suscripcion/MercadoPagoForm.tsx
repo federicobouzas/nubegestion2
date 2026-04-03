@@ -159,6 +159,71 @@ export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
     }
   }, [sdkReady])
 
+  // Formateo de campos nativos (MP usa iframe:false, no podemos usar onChange de React)
+  useEffect(() => {
+    if (!formReady) return
+
+    const cardNumberEl = document.getElementById('mp-cardNumber') as HTMLInputElement
+    const securityCodeEl = document.getElementById('mp-securityCode') as HTMLInputElement
+    const docNumberEl = document.getElementById('mp-identificationNumber') as HTMLInputElement
+
+    const isAmex = () => cardNumberEl?.value.replace(/\D/g, '').startsWith('3')
+
+    const handleCardNumber = (e: Event) => {
+      const input = e.target as HTMLInputElement
+      const digits = input.value.replace(/\D/g, '').slice(0, 16)
+      let formatted: string
+
+      if (digits.startsWith('3')) {
+        // Amex: 4-6-5
+        formatted = [digits.slice(0, 4), digits.slice(4, 10), digits.slice(10, 15)]
+          .filter(Boolean).join(' ')
+      } else {
+        // Visa/MC/etc: 4-4-4-4
+        formatted = digits.match(/.{1,4}/g)?.join(' ') ?? ''
+      }
+
+      if (input.value !== formatted) {
+        input.value = formatted
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+
+      // Actualiza maxLength del CVV según tipo de tarjeta
+      if (securityCodeEl) {
+        securityCodeEl.maxLength = digits.startsWith('3') ? 4 : 3
+      }
+    }
+
+    const handleCVV = (e: Event) => {
+      const input = e.target as HTMLInputElement
+      const max = isAmex() ? 4 : 3
+      const digits = input.value.replace(/\D/g, '').slice(0, max)
+      if (input.value !== digits) {
+        input.value = digits
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    }
+
+    const handleDoc = (e: Event) => {
+      const input = e.target as HTMLInputElement
+      const digits = input.value.replace(/\D/g, '').slice(0, 8)
+      if (input.value !== digits) {
+        input.value = digits
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    }
+
+    cardNumberEl?.addEventListener('input', handleCardNumber)
+    securityCodeEl?.addEventListener('input', handleCVV)
+    docNumberEl?.addEventListener('input', handleDoc)
+
+    return () => {
+      cardNumberEl?.removeEventListener('input', handleCardNumber)
+      securityCodeEl?.removeEventListener('input', handleCVV)
+      docNumberEl?.removeEventListener('input', handleDoc)
+    }
+  }, [formReady])
+
   return (
     <>
       <Script
@@ -180,7 +245,13 @@ export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
 
         <div>
           <label className={labelCls} htmlFor="mp-cardNumber">Número de tarjeta</label>
-          <input id="mp-cardNumber" type="text" placeholder="0000 0000 0000 0000" className={inputCls} />
+          <input
+            id="mp-cardNumber"
+            type="text"
+            placeholder="0000 0000 0000 0000"
+            maxLength={19}
+            className={inputCls}
+          />
           {fieldErrors.cardNumber && <p className={fieldErrorCls}>{fieldErrors.cardNumber}</p>}
         </div>
 
@@ -192,7 +263,13 @@ export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
           </div>
           <div>
             <label className={labelCls} htmlFor="mp-securityCode">CVV</label>
-            <input id="mp-securityCode" type="text" placeholder="123" className={inputCls} />
+            <input
+              id="mp-securityCode"
+              type="text"
+              placeholder="CVV"
+              maxLength={3}
+              className={inputCls}
+            />
             {fieldErrors.securityCode && <p className={fieldErrorCls}>{fieldErrors.securityCode}</p>}
           </div>
         </div>
@@ -216,7 +293,13 @@ export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
           </div>
           <div>
             <label className={labelCls} htmlFor="mp-identificationNumber">Número de doc.</label>
-            <input id="mp-identificationNumber" type="text" placeholder="12345678" className={inputCls} />
+            <input
+              id="mp-identificationNumber"
+              type="text"
+              placeholder="12345678"
+              maxLength={8}
+              className={inputCls}
+            />
             {fieldErrors.identification && <p className={fieldErrorCls}>{fieldErrors.identification}</p>}
           </div>
         </div>
