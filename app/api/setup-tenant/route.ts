@@ -38,7 +38,7 @@ export async function POST() {
   // 1. Tenant
   const { data: tenant, error: tenantError } = await admin
     .from('tenants')
-    .insert({ nombre: empresa, email: user.email, activo: true, trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() })
+    .insert({ nombre: empresa, email: user.email, activo: true })
     .select('id')
     .single()
 

@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
         if (usuario?.tenant_id) {
           const plan = body.plan || body.metadata?.plan || 'pro'
 
-          // Si el plan está vigente, sumar 30 días desde plan_ends_at; si no, desde ahora
           const { data: currentTenant } = await supabase
             .from('tenants')
             .select('plan_ends_at')
@@ -57,7 +56,6 @@ export async function POST(req: NextRequest) {
               .update({
                 plan,
                 plan_ends_at: nuevaFecha.toISOString(),
-                plan_choice_made: false,
               })
               .eq('id', usuario.tenant_id),
           ])
@@ -76,7 +74,6 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  // Errores de validación de MP (token inválido, campos vacíos, etc.)
   if (payment.cause && Array.isArray(payment.cause)) {
     return NextResponse.json({ causes: payment.cause }, { status: 422 })
   }

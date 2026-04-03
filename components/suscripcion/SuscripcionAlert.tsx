@@ -26,7 +26,7 @@ export default function SuscripcionAlert({ info, children }: Props) {
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
       {showGrace && (
-        <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-[12px]">
+        <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-200 text-red-800 text-[12px]">
           <Clock size={13} strokeWidth={2.2} className="shrink-0" />
           <span>
             Tu plan {PLAN_LABEL[info.plan] ?? info.plan} venció hace {info.diasVencido} día{info.diasVencido === 1 ? '' : 's'}.{' '}

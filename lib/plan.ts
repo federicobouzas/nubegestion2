@@ -7,7 +7,7 @@ export interface PlanDef {
   slug: Plan
   nombre: string
   precio: number
-  facturasMes: number | null  // null = ilimitado
+  facturasMes: number | null
   usuarios: number | null
   features: string[]
 }
@@ -15,14 +15,12 @@ export interface PlanDef {
 export interface PlanInfo {
   plan: Plan
   planEndsAt: string | null
-  planChoiceMade: boolean
   isActive: boolean
   diasVencido: number
-  inGracePeriod: boolean
-  needsChoiceScreen: boolean
+  inGracePeriod: boolean  // 1–7 días: avisa pero deja entrar
+  isBlocked: boolean      // >7 días: redirige a /suscripcion
 }
 
-// Fallback si la tabla planes aún no tiene los datos
 const FALLBACK_LIMITS: Record<Plan, Pick<PlanDef, 'facturasMes' | 'usuarios'>> = {
   free:     { facturasMes: 50,  usuarios: 1 },
   pro:      { facturasMes: 300, usuarios: 3 },
@@ -57,6 +55,31 @@ export async function getPlanes(): Promise<PlanDef[]> {
   }
 }
 
+function computePlanInfo(plan: Plan, planEndsAt: string | null): PlanInfo {
+  // Free nunca vence
+  if (plan === 'free') {
+    return { plan, planEndsAt: null, isActive: true, diasVencido: 0, inGracePeriod: false, isBlocked: false }
+  }
+
+  const now = new Date()
+  const endsAt = planEndsAt ? new Date(planEndsAt) : null
+
+  // Pro/Business sin fecha — tratar como vencido desde hoy (no debería pasar)
+  if (!endsAt) {
+    return { plan, planEndsAt: null, isActive: false, diasVencido: 0, inGracePeriod: false, isBlocked: true }
+  }
+
+  const isActive = endsAt > now
+  const diasVencido = isActive
+    ? 0
+    : Math.floor((now.getTime() - endsAt.getTime()) / (1000 * 60 * 60 * 24))
+
+  const inGracePeriod = !isActive && diasVencido >= 1 && diasVencido <= 7
+  const isBlocked     = !isActive && diasVencido > 7
+
+  return { plan, planEndsAt, isActive, diasVencido, inGracePeriod, isBlocked }
+}
+
 export async function getPlanInfo(): Promise<PlanInfo> {
   try {
     const supabase = await createServerSupabase()
@@ -73,38 +96,21 @@ export async function getPlanInfo(): Promise<PlanInfo> {
 
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('plan, plan_ends_at, plan_choice_made')
+      .select('plan, plan_ends_at')
       .eq('id', usuario.tenant_id)
       .single()
 
     const plan: Plan = (tenant?.plan as Plan) || 'free'
-    const planEndsAt: string | null = tenant?.plan_ends_at || null
-    const planChoiceMade: boolean = tenant?.plan_choice_made || false
-
-    if (plan === 'free') {
-      return { plan, planEndsAt: null, planChoiceMade, isActive: true, diasVencido: 0, inGracePeriod: false, needsChoiceScreen: false }
-    }
-
-    const now = new Date()
-    const endsAt = planEndsAt ? new Date(planEndsAt) : null
-    const isActive = endsAt ? endsAt > now : false
-    const diasVencido = endsAt && !isActive
-      ? Math.floor((now.getTime() - endsAt.getTime()) / (1000 * 60 * 60 * 24))
-      : 0
-    const inGracePeriod = !isActive && diasVencido >= 1 && diasVencido <= 7
-    const needsChoiceScreen = !isActive && diasVencido > 7 && !planChoiceMade
-
-    return { plan, planEndsAt, planChoiceMade, isActive, diasVencido, inGracePeriod, needsChoiceScreen }
+    return computePlanInfo(plan, tenant?.plan_ends_at ?? null)
   } catch {
     return makeFreeInfo()
   }
 }
 
 function makeFreeInfo(): PlanInfo {
-  return { plan: 'free', planEndsAt: null, planChoiceMade: false, isActive: true, diasVencido: 0, inGracePeriod: false, needsChoiceScreen: false }
+  return { plan: 'free', planEndsAt: null, isActive: true, diasVencido: 0, inGracePeriod: false, isBlocked: false }
 }
 
-// Chequeo server-side del límite de facturas del mes
 export async function getFacturasLimitInfo(): Promise<{ limit: number | null; total: number }> {
   try {
     const supabase = await createServerSupabase()
@@ -126,10 +132,8 @@ export async function getFacturasLimitInfo(): Promise<{ limit: number | null; to
       .single()
 
     const plan: Plan = (tenant?.plan as Plan) || 'free'
-    const endsAt = tenant?.plan_ends_at ? new Date(tenant.plan_ends_at) : null
-    const isActive = endsAt ? endsAt > new Date() : false
+    const { isActive } = computePlanInfo(plan, tenant?.plan_ends_at ?? null)
 
-    // business activo = ilimitado
     if (plan === 'business' && isActive) return { limit: null, total: 0 }
 
     const effectiveSlug: Plan = plan === 'pro' && isActive ? 'pro' : 'free'
@@ -146,16 +150,10 @@ export async function getFacturasLimitInfo(): Promise<{ limit: number | null; to
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
     const [{ count: cV }, { count: cC }] = await Promise.all([
-      supabase
-        .from('facturas_venta')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', usuario.tenant_id)
-        .gte('created_at', startOfMonth),
-      supabase
-        .from('facturas_compra')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', usuario.tenant_id)
-        .gte('created_at', startOfMonth),
+      supabase.from('facturas_venta').select('id', { count: 'exact', head: true })
+        .eq('tenant_id', usuario.tenant_id).gte('created_at', startOfMonth),
+      supabase.from('facturas_compra').select('id', { count: 'exact', head: true })
+        .eq('tenant_id', usuario.tenant_id).gte('created_at', startOfMonth),
     ])
 
     return { limit, total: (cV || 0) + (cC || 0) }

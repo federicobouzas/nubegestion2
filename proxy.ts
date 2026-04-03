@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Chequeo de plan — solo para páginas del dashboard, excluyendo /suscripcion/* y /api/plan/*
+  // Chequeo de plan — solo para páginas del dashboard, excluyendo /suscripcion/* y /api/*
   if (user && !isAuth && !pathname.startsWith('/suscripcion') && !pathname.startsWith('/api/')) {
     const { data: usuario } = await supabase
       .from('usuarios')
@@ -48,7 +48,7 @@ export async function proxy(request: NextRequest) {
     if (usuario?.tenant_id) {
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('plan, plan_ends_at, plan_choice_made')
+        .select('plan, plan_ends_at')
         .eq('id', usuario.tenant_id)
         .single()
 
@@ -60,7 +60,7 @@ export async function proxy(request: NextRequest) {
         const endsAt = new Date(tenant.plan_ends_at)
         const diasVencido = Math.floor((now.getTime() - endsAt.getTime()) / (1000 * 60 * 60 * 24))
 
-        if (diasVencido > 7 && !tenant.plan_choice_made) {
+        if (diasVencido > 7) {
           return NextResponse.redirect(new URL('/suscripcion', request.url))
         }
       }

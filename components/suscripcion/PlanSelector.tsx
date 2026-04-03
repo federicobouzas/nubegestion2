@@ -5,7 +5,6 @@ import { Check, Loader2 } from 'lucide-react'
 import MercadoPagoForm from './MercadoPagoForm'
 import type { PlanDef, Plan, PlanInfo } from '@/lib/plan'
 
-
 interface Props {
   planes: PlanDef[]
   currentInfo: PlanInfo
@@ -19,6 +18,15 @@ export default function PlanSelector({ planes, currentInfo }: Props) {
   const selectedPlan = planes.find(p => p.slug === selected)
   const isCurrent = selected === currentInfo.plan
   const isDowngradeToFree = selected === 'free' && !isCurrent
+  const freePlan = planes.find(p => p.slug === 'free')
+
+  function formatPlanDate(isoString: string): string {
+    // Tomar solo la parte de fecha (YYYY-MM-DD) para evitar conversión de timezone
+    const [year, month, day] = isoString.split('T')[0].split('-').map(Number)
+    return new Date(year, month - 1, day).toLocaleDateString('es-AR', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    })
+  }
 
   async function handleDowngradeToFree() {
     setDowngradingToFree(true)
@@ -85,21 +93,27 @@ export default function PlanSelector({ planes, currentInfo }: Props) {
         })}
       </div>
 
-      {/* Acción según selección */}
       {isCurrent && (
-        <div className="rounded-[10px] bg-[#E8F7EF] border border-[#4EBB7F]/30 px-4 py-3 text-[12px] text-[#1A5C38]">
+        <div className={`rounded-[10px] px-4 py-3 text-[12px] border ${
+          currentInfo.plan === 'free' || currentInfo.isActive
+            ? 'bg-[#E8F7EF] border-[#4EBB7F]/30 text-[#1A5C38]'
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
           {currentInfo.plan === 'free'
             ? 'Estás en el plan gratuito. Seleccioná Pro o Business para mejorar tu plan.'
-            : currentInfo.planEndsAt
-              ? `Plan activo. Vigente hasta el ${new Date(currentInfo.planEndsAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}. Podés renovar para sumar 30 días más.`
-              : 'Tu plan está activo.'}
+            : currentInfo.isActive
+              ? currentInfo.planEndsAt
+                ? `Plan activo. Vigente hasta el ${formatPlanDate(currentInfo.planEndsAt)}. Podés renovar para sumar 30 días más.`
+                : 'Tu plan está activo.'
+              : `Tu plan venció ${currentInfo.diasVencido === 0 ? 'hoy' : `hace ${currentInfo.diasVencido} día${currentInfo.diasVencido === 1 ? '' : 's'}`}. Renovalo para continuar.`
+          }
         </div>
       )}
 
       {isDowngradeToFree && (
         <div className="rounded-[14px] border border-[#E5E4E0] bg-white p-5 space-y-3">
           <p className="text-[12.5px] text-[#6B6762]">
-            Al pasar al plan gratuito perderás acceso a las funciones del plan {currentInfo.plan} y quedarás limitado a 50 facturas por mes.
+            Al pasar al plan gratuito perderás acceso a las funciones del plan {currentInfo.plan} y quedarás limitado a {freePlan?.facturasMes ?? 50} facturas por mes.          
           </p>
           <button
             onClick={handleDowngradeToFree}
