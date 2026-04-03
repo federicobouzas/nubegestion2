@@ -51,7 +51,13 @@ function parseMPCauses(causes: MPCause[]): FieldErrors {
   return errors
 }
 
-export default function MercadoPagoForm() {
+interface Props {
+  planSlug: string
+  monto: number
+  title: string
+}
+
+export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
   const [sdkReady, setSdkReady]   = useState(false)
   const [formReady, setFormReady] = useState(false)
   const [loading, setLoading]     = useState(false)
@@ -79,7 +85,7 @@ export default function MercadoPagoForm() {
     )
 
     const cardForm = mp.cardForm({
-      amount: process.env.NEXT_PUBLIC_SUSCRIPCION_MONTO || '5000',
+      amount: String(monto),
       iframe: false,
       form: {
         id: 'form-mp-checkout',
@@ -115,9 +121,10 @@ export default function MercadoPagoForm() {
               token: formData.token,
               issuer_id: formData.issuerId,
               payment_method_id: formData.paymentMethodId,
-              transaction_amount: parseFloat(process.env.NEXT_PUBLIC_SUSCRIPCION_MONTO || '5000'),
+              transaction_amount: monto,
               installments: parseInt(formData.installments) || 1,
               description: 'Suscripción Nube Gestión',
+              plan: planSlug,
               payer: {
                 email: formData.cardholderEmail,
                 identification: {
@@ -168,10 +175,7 @@ export default function MercadoPagoForm() {
       <form id="form-mp-checkout" className="space-y-3" action="javascript:void(0)">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#E5E4E0]">
           <CreditCard size={15} className="text-[#F2682E]" />
-          <span className="text-[12.5px] font-semibold text-[#18181B]">Renovar suscripción</span>
-          <span className="ml-auto font-mono text-[12px] font-bold text-[#18181B]">
-            ${(parseInt(process.env.NEXT_PUBLIC_SUSCRIPCION_MONTO || '5000')).toLocaleString('es-AR')}
-          </span>
+          <span className="text-[12.5px] font-semibold text-[#18181B]">{title}</span>
         </div>
 
         <div>

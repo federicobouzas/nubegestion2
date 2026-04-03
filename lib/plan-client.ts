@@ -2,7 +2,8 @@ import { createClient } from './supabase'
 import { getTenantId } from '@/lib/tenant'
 import type { Plan } from './plan'
 
-const FACTURAS_MES: Record<Plan, number | null> = {
+// Fallback si la tabla planes aún no tiene slug/facturas_mes
+const FALLBACK_FACTURAS: Record<Plan, number | null> = {
   free: 50,
   pro: 300,
   business: null,
@@ -22,13 +23,20 @@ export async function checkPlanLimit(): Promise<void> {
   const endsAt = tenant?.plan_ends_at ? new Date(tenant.plan_ends_at) : null
   const isActive = endsAt ? endsAt > new Date() : false
 
-  let limit: number | null
+  // business activo = ilimitado
   if (plan === 'business' && isActive) return
-  if (plan === 'pro' && isActive) {
-    limit = FACTURAS_MES.pro
-  } else {
-    limit = FACTURAS_MES.free
-  }
+
+  // Leer límite desde la tabla planes
+  let limit: number | null = null
+  const effectiveSlug: Plan = (plan === 'pro' && isActive) ? 'pro' : 'free'
+
+  const { data: planDef } = await supabase
+    .from('planes')
+    .select('facturas_mes')
+    .eq('slug', effectiveSlug)
+    .single()
+
+  limit = planDef?.facturas_mes ?? FALLBACK_FACTURAS[effectiveSlug]
 
   if (limit === null) return
 
@@ -50,7 +58,7 @@ export async function checkPlanLimit(): Promise<void> {
 
   const total = (cV || 0) + (cC || 0)
   if (total >= limit) {
-    const label = plan === 'free' ? 'gratuito' : plan
+    const label = effectiveSlug === 'free' ? 'gratuito' : effectiveSlug
     throw new Error(
       `Límite de facturas alcanzado: el plan ${label} permite ${limit} facturas por mes. Este mes ya tenés ${total}.`
     )

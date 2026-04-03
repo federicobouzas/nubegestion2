@@ -29,10 +29,20 @@ export async function POST(req: NextRequest) {
           .single()
 
         if (usuario?.tenant_id) {
-          const nuevaFecha = new Date()
-          nuevaFecha.setDate(nuevaFecha.getDate() + 30)
+          const plan = body.plan || body.metadata?.plan || 'pro'
 
-          const plan = body.metadata?.plan || 'pro'
+          // Si el plan está vigente, sumar 30 días desde plan_ends_at; si no, desde ahora
+          const { data: currentTenant } = await supabase
+            .from('tenants')
+            .select('plan_ends_at')
+            .eq('id', usuario.tenant_id)
+            .single()
+
+          const now = new Date()
+          const currentEndsAt = currentTenant?.plan_ends_at ? new Date(currentTenant.plan_ends_at) : null
+          const baseDate = currentEndsAt && currentEndsAt > now ? currentEndsAt : now
+          const nuevaFecha = new Date(baseDate)
+          nuevaFecha.setDate(nuevaFecha.getDate() + 30)
 
           await Promise.all([
             supabase.from('suscripciones').insert({
