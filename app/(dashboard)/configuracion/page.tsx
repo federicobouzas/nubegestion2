@@ -8,7 +8,6 @@ import FormErrorBanner from '@/components/shared/FormErrorBanner'
 import { createClient } from '@/lib/supabase'
 import { getTenantId } from '@/lib/tenant'
 
-const TENANT_ID = await getTenantId()
 const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final']
 
 export default function ConfiguracionPage() {
@@ -18,33 +17,63 @@ export default function ConfiguracionPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showModal, setShowModal] = useState(false)
 
-  const [form, setForm] = useState({
+  const [userForm, setUserForm] = useState({
+    nombre: '',
+    email: '',
+    password: '',
+    password2: '',
+  })
+
+  const [tenantForm, setTenantForm] = useState({
     razon_social: '',
     cuit: '',
     fecha_inicio_actividades: '',
     punto_venta: '1',
-    domicilio_comercial: '',
+    domicilio_fiscal: '',
     ingresos_brutos: '',
     condicion_iva: 'Responsable Inscripto',
+    telefono: '',
+    email: '',
+    localidad: '',
+    provincia: '',
+    codigo_postal: '',
   })
 
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const { data } = await supabase
-        .from('configuracion')
+      const TENANT_ID = await getTenantId()
+
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user) {
+        const { data: u } = await supabase
+          .from('usuarios')
+          .select('nombre, email')
+          .eq('id', user.id)
+          .single()
+        if (u) setUserForm(p => ({ ...p, nombre: u.nombre || '', email: u.email || '' }))
+      }
+
+      const { data: t } = await supabase
+        .from('tenants')
         .select('*')
-        .eq('tenant_id', TENANT_ID)
+        .eq('id', TENANT_ID)
         .single()
-      if (data) {
-        setForm({
-          razon_social: data.razon_social || '',
-          cuit: data.cuit || '',
-          fecha_inicio_actividades: data.fecha_inicio_actividades || '',
-          punto_venta: String(data.punto_venta || '1'),
-          domicilio_comercial: data.domicilio_comercial || '',
-          ingresos_brutos: data.ingresos_brutos || '',
-          condicion_iva: data.condicion_iva || 'Responsable Inscripto',
+      if (t) {
+        setTenantForm({
+          razon_social: t.razon_social || '',
+          cuit: t.cuit || '',
+          fecha_inicio_actividades: t.fecha_inicio_actividades || '',
+          punto_venta: String(t.punto_venta || '1'),
+          domicilio_fiscal: t.domicilio_fiscal || '',
+          ingresos_brutos: t.ingresos_brutos || '',
+          condicion_iva: t.condicion_iva || 'Responsable Inscripto',
+          telefono: t.telefono || '',
+          email: t.email || '',
+          localidad: t.localidad || '',
+          provincia: t.provincia || '',
+          codigo_postal: t.codigo_postal || '',
         })
       }
       setLoading(false)
@@ -52,8 +81,14 @@ export default function ConfiguracionPage() {
     load()
   }, [])
 
-  function set(k: string, v: string) {
-    setForm(p => ({ ...p, [k]: v }))
+  function setU(k: string, v: string) {
+    setUserForm(p => ({ ...p, [k]: v }))
+    setErrors(p => { const n = { ...p }; delete n[k]; return n })
+    setSaved(false)
+  }
+
+  function setT(k: string, v: string) {
+    setTenantForm(p => ({ ...p, [k]: v }))
     setErrors(p => { const n = { ...p }; delete n[k]; return n })
     setSaved(false)
   }
@@ -61,29 +96,60 @@ export default function ConfiguracionPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const newErrors: Record<string, string> = {}
-    if (!form.razon_social.trim()) newErrors['razon_social'] = 'La razón social es obligatoria.'
-    if (!form.cuit.trim()) newErrors['cuit'] = 'El CUIT es obligatorio.'
-    if (!form.punto_venta || Number(form.punto_venta) < 1) newErrors['punto_venta'] = 'El punto de venta debe ser mayor a 0.'
+
+    if (!userForm.nombre.trim()) newErrors['nombre'] = 'El nombre es obligatorio.'
+    if (!userForm.email.trim()) newErrors['email'] = 'El email es obligatorio.'
+    if (userForm.password && userForm.password !== userForm.password2)
+      newErrors['password2'] = 'Las contraseñas no coinciden.'
+    if (!tenantForm.razon_social.trim()) newErrors['razon_social'] = 'La razón social es obligatoria.'
+    if (!tenantForm.cuit.trim()) newErrors['cuit'] = 'El CUIT es obligatorio.'
+    if (!tenantForm.punto_venta || Number(tenantForm.punto_venta) < 1)
+      newErrors['punto_venta'] = 'El punto de venta debe ser mayor a 0.'
+
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); setShowModal(true); return }
 
     setSaving(true)
     try {
       const supabase = createClient()
-      const payload = {
-        tenant_id: TENANT_ID,
-        razon_social: form.razon_social.trim(),
-        cuit: form.cuit.trim(),
-        fecha_inicio_actividades: form.fecha_inicio_actividades || null,
-        punto_venta: Number(form.punto_venta),
-        domicilio_comercial: form.domicilio_comercial.trim() || null,
-        ingresos_brutos: form.ingresos_brutos.trim() || null,
-        condicion_iva: form.condicion_iva,
-        updated_at: new Date().toISOString(),
+      const TENANT_ID = await getTenantId()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      // Guardar usuario
+      const { error: userError } = await supabase
+        .from('usuarios')
+        .update({ nombre: userForm.nombre.trim(), email: userForm.email.trim() })
+        .eq('id', user!.id)
+      if (userError) throw userError
+
+      // Cambiar contraseña si se completó
+      if (userForm.password) {
+        const { error: passError } = await supabase.auth.updateUser({ password: userForm.password })
+        if (passError) throw passError
       }
-      const { error } = await supabase
-        .from('configuracion')
-        .upsert(payload, { onConflict: 'tenant_id' })
-      if (error) throw error
+
+      // Guardar tenant
+      const { error: tenantError } = await supabase
+        .from('tenants')
+        .update({
+          razon_social: tenantForm.razon_social.trim(),
+          cuit: tenantForm.cuit.trim(),
+          fecha_inicio_actividades: tenantForm.fecha_inicio_actividades || null,
+          punto_venta: Number(tenantForm.punto_venta),
+          domicilio_fiscal: tenantForm.domicilio_fiscal.trim() || null,
+          ingresos_brutos: tenantForm.ingresos_brutos.trim() || null,
+          condicion_iva: tenantForm.condicion_iva,
+          telefono: tenantForm.telefono.trim() || null,
+          email: tenantForm.email.trim() || null,
+          localidad: tenantForm.localidad.trim() || null,
+          provincia: tenantForm.provincia.trim() || null,
+          codigo_postal: tenantForm.codigo_postal.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', TENANT_ID)
+      if (tenantError) throw tenantError
+
+      // Limpiar contraseñas
+      setUserForm(p => ({ ...p, password: '', password2: '' }))
       setSaved(true)
     } catch (err: any) {
       setErrors({ _server: err?.message || 'Error al guardar.' })
@@ -111,33 +177,70 @@ export default function ConfiguracionPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-none">
           <FormErrorBanner show={Object.keys(errors).length > 0} />
 
+          {/* Datos Personales */}
+          <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3">
+              <span className="font-display text-[13.5px] font-bold">Datos Personales</span>
+            </div>
+            <div className="p-4 grid grid-cols-2 gap-3">
+              <FieldWrapper label="Nombre" required error={errors.nombre}>
+                <input className={inputCls(errors.nombre)} value={userForm.nombre} onChange={e => setU('nombre', e.target.value)} placeholder="Tu nombre" />
+              </FieldWrapper>
+              <FieldWrapper label="Email" required error={errors.email}>
+                <input className={inputCls(errors.email)} type="email" value={userForm.email} onChange={e => setU('email', e.target.value)} placeholder="tu@email.com" />
+              </FieldWrapper>
+              <FieldWrapper label="Nueva Contraseña" error={errors.password}>
+                <input className={inputCls(errors.password)} type="password" value={userForm.password} onChange={e => setU('password', e.target.value)} placeholder="Dejar vacío para no cambiar" />
+              </FieldWrapper>
+              <FieldWrapper label="Repetir Contraseña" error={errors.password2}>
+                <input className={inputCls(errors.password2)} type="password" value={userForm.password2} onChange={e => setU('password2', e.target.value)} placeholder="Repetir nueva contraseña" />
+              </FieldWrapper>
+            </div>
+          </div>
+
+          {/* Datos de la Empresa */}
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3">
               <span className="font-display text-[13.5px] font-bold">Datos de la Empresa</span>
             </div>
             <div className="p-4 grid grid-cols-2 gap-3">
               <FieldWrapper label="Razón Social" required error={errors.razon_social}>
-                <input className={inputCls(errors.razon_social)} value={form.razon_social} onChange={e => set('razon_social', e.target.value)} placeholder="Nombre o Razón Social" />
-              </FieldWrapper>
-              <FieldWrapper label="Domicilio Comercial">
-                <input className={inputCls()} value={form.domicilio_comercial} onChange={e => set('domicilio_comercial', e.target.value)} placeholder="Calle, número, piso..." />
+                <input className={inputCls(errors.razon_social)} value={tenantForm.razon_social} onChange={e => setT('razon_social', e.target.value)} placeholder="Nombre o Razón Social" />
               </FieldWrapper>
               <FieldWrapper label="CUIT" required error={errors.cuit}>
-                <input className={inputCls(errors.cuit)} value={form.cuit} onChange={e => set('cuit', e.target.value)} placeholder="20-12345678-9" />
+                <input className={inputCls(errors.cuit)} value={tenantForm.cuit} onChange={e => setT('cuit', e.target.value)} placeholder="20-12345678-9" />
+              </FieldWrapper>
+              <FieldWrapper label="Domicilio Fiscal">
+                <input className={inputCls()} value={tenantForm.domicilio_fiscal} onChange={e => setT('domicilio_fiscal', e.target.value)} placeholder="Calle, número, piso..." />
+              </FieldWrapper>
+              <FieldWrapper label="Localidad">
+                <input className={inputCls()} value={tenantForm.localidad} onChange={e => setT('localidad', e.target.value)} placeholder="Localidad" />
+              </FieldWrapper>
+              <FieldWrapper label="Provincia">
+                <input className={inputCls()} value={tenantForm.provincia} onChange={e => setT('provincia', e.target.value)} placeholder="Provincia" />
+              </FieldWrapper>
+              <FieldWrapper label="Código Postal">
+                <input className={inputCls()} value={tenantForm.codigo_postal} onChange={e => setT('codigo_postal', e.target.value)} placeholder="1234" />
+              </FieldWrapper>
+              <FieldWrapper label="Teléfono">
+                <input className={inputCls()} value={tenantForm.telefono} onChange={e => setT('telefono', e.target.value)} placeholder="+54 11 1234-5678" />
+              </FieldWrapper>
+              <FieldWrapper label="Email de la Empresa">
+                <input className={inputCls()} type="email" value={tenantForm.email} onChange={e => setT('email', e.target.value)} placeholder="empresa@email.com" />
               </FieldWrapper>
               <FieldWrapper label="Ingresos Brutos">
-                <input className={inputCls()} value={form.ingresos_brutos} onChange={e => set('ingresos_brutos', e.target.value)} placeholder="Nro. IIBB" />
+                <input className={inputCls()} value={tenantForm.ingresos_brutos} onChange={e => setT('ingresos_brutos', e.target.value)} placeholder="Nro. IIBB" />
               </FieldWrapper>
               <FieldWrapper label="Fecha de Inicio de Actividades">
-                <input className={inputCls()} type="date" value={form.fecha_inicio_actividades} onChange={e => set('fecha_inicio_actividades', e.target.value)} />
+                <input className={inputCls()} type="date" value={tenantForm.fecha_inicio_actividades} onChange={e => setT('fecha_inicio_actividades', e.target.value)} />
               </FieldWrapper>
               <FieldWrapper label="Condición frente al IVA">
-                <select className={inputCls()} value={form.condicion_iva} onChange={e => set('condicion_iva', e.target.value)}>
+                <select className={inputCls()} value={tenantForm.condicion_iva} onChange={e => setT('condicion_iva', e.target.value)}>
                   {CONDICIONES_IVA.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </FieldWrapper>
               <FieldWrapper label="Punto de Venta" required error={errors.punto_venta}>
-                <input className={inputCls(errors.punto_venta)} type="number" min={1} max={9999} value={form.punto_venta} onChange={e => set('punto_venta', e.target.value)} placeholder="0001" />
+                <input className={inputCls(errors.punto_venta)} type="number" min={1} max={9999} value={tenantForm.punto_venta} onChange={e => setT('punto_venta', e.target.value)} placeholder="0001" />
               </FieldWrapper>
             </div>
           </div>
