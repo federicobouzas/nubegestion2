@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
           ...(plan?.id ? { plan_id: plan.id } : {}),
         })
         .eq('tenant_id', tenantId)
-        .eq('mp_preference_id', payment.preference_id ?? '')
+        .eq('mp_preference_id', (payment as any).preference_id ?? '')
         .eq('estado', 'pendiente'),
 
       // Actualizar tenant
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
     await admin.from('suscripciones')
       .update({ mp_payment_id: String(payment.id), mp_status: status, estado: 'suspendida' })
       .eq('tenant_id', tenantId)
-      .eq('mp_preference_id', payment.preference_id ?? '')
+      .eq('mp_preference_id', (payment as any).preference_id ?? '')
       .eq('estado', 'pendiente')
 
     if (adminUser?.email) {

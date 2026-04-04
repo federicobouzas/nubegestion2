@@ -246,7 +246,7 @@ export default function FacturaCompraForm({ onSubmit }: Props) {
                     <tr key={idx} className="border-b border-[#F1F0EE] last:border-0">
                       <td className="px-3 py-2 min-w-[180px] align-top">
                         <ProductoAutocomplete
-                          items={productos.map(p => ({ id: p.id, tipo: 'producto' as const, nombre: p.nombre, codigo: p.codigo, iva: p.iva, precio_venta: p.precio_venta, stock_actual: p.stock_actual, stock_minimo: p.stock_minimo, unidad_medida: p.unidad_medida }))}
+                          items={productos.map(p => ({ id: p.id, tipo: 'producto' as const, nombre: p.nombre, codigo: p.codigo, iva: p.iva, precio_venta: (p as any).precio_venta, stock_actual: p.stock_actual, stock_minimo: p.stock_minimo, unidad_medida: p.unidad_medida }))}
                           value={item.item_id}
                           label={itemLabels[idx]}
                           error={errors[`item_${idx}_descripcion`]}
