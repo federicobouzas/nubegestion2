@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Topbar from '@/components/shared/Topbar'
 import PaginationNav from '@/components/shared/PaginationNav'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import { createClient } from '@/lib/supabase'
 import { getTenantId } from '@/lib/tenant'
 import { getCuentas } from '@/lib/cuentas'
@@ -40,7 +41,7 @@ export default function HistorialPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   useEffect(() => {
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   const load = useCallback(async () => {
@@ -180,43 +181,41 @@ export default function HistorialPage() {
 
       {/* Tabla */}
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
-        {loading ? (
-          <div className="text-center text-[#A8A49D] text-sm py-10">Cargando...</div>
-        ) : (
-          <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-[#E5E4E0] bg-[#F9F9F8]">
-                  {['Fecha', 'Cuenta', 'Tipo', 'Código', 'Observaciones', 'Ingreso', 'Egreso', 'Saldo'].map((h, i) => (
-                    <th key={i} className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-2.5 text-left font-medium">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.length === 0 ? (
-                  <tr><td colSpan={8} className="px-4 py-10 text-center text-[#A8A49D] text-sm">No hay movimientos.</td></tr>
-                ) : data.map((m, idx) => (
-                  <tr key={idx} className="border-b border-[#F1F0EE] last:border-0 hover:bg-[#FEF0EA]/50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-[11.5px] text-[#6B6762] whitespace-nowrap">{new Date(m.fecha).toLocaleDateString('es-AR')}</td>
-                    <td className="px-4 py-3 text-[12px] font-semibold text-[#18181B] whitespace-nowrap">{m.cuenta_nombre}</td>
-                    <td className="px-4 py-3">{tipoBadge(m.tipo)}</td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-[#6B6762]">{m.codigo || '—'}</td>
-                    <td className="px-4 py-3 text-[12px] text-[#6B6762] max-w-[300px] truncate">{m.observacion || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-[12px] text-[#1A5C38] font-medium text-right">
-                      {m.ingreso > 0 ? formatMonto(m.ingreso) : ''}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[12px] text-[#EE3232] font-medium text-right">
-                      {m.egreso > 0 ? formatMonto(m.egreso) : ''}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[12px] font-bold text-[#18181B] text-right whitespace-nowrap">
-                      {formatMonto(m.saldo)}
-                    </td>
-                  </tr>
+        <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-[#E5E4E0] bg-[#F9F9F8]">
+                {['Fecha', 'Cuenta', 'Tipo', 'Código', 'Observaciones', 'Ingreso', 'Egreso', 'Saldo'].map((h, i) => (
+                  <th key={i} className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-2.5 text-left font-medium">{h}</th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <TableSkeleton cols={['date', 'medium', 'medium', 'code', 'wide', 'amount', 'amount', 'amount']} />
+              ) : data.length === 0 ? (
+                <tr><td colSpan={8} className="px-4 py-10 text-center text-[#A8A49D] text-sm">No hay movimientos.</td></tr>
+              ) : data.map((m, idx) => (
+                <tr key={idx} className="border-b border-[#F1F0EE] last:border-0 hover:bg-[#FEF0EA]/50 transition-colors">
+                  <td className="px-4 py-3 font-mono text-[11.5px] text-[#6B6762] whitespace-nowrap">{new Date(m.fecha).toLocaleDateString('es-AR')}</td>
+                  <td className="px-4 py-3 text-[12px] font-semibold text-[#18181B] whitespace-nowrap">{m.cuenta_nombre}</td>
+                  <td className="px-4 py-3">{tipoBadge(m.tipo)}</td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-[#6B6762]">{m.codigo || '—'}</td>
+                  <td className="px-4 py-3 text-[12px] text-[#6B6762] max-w-[300px] truncate">{m.observacion || '—'}</td>
+                  <td className="px-4 py-3 font-mono text-[12px] text-[#1A5C38] font-medium text-right">
+                    {m.ingreso > 0 ? formatMonto(m.ingreso) : ''}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-[12px] text-[#EE3232] font-medium text-right">
+                    {m.egreso > 0 ? formatMonto(m.egreso) : ''}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-[12px] font-bold text-[#18181B] text-right whitespace-nowrap">
+                    {formatMonto(m.saldo)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

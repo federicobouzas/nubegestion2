@@ -5,6 +5,7 @@ import { Plus, Eye } from 'lucide-react'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import { TIPOS_TICKET, CRITICIDADES, ESTADOS_TICKET } from '@/types/soporte'
 import type { TipoTicket, CriticidadTicket, EstadoTicket } from '@/types/soporte'
 
@@ -111,7 +112,7 @@ export default function SoportePage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">Cargando...</td></tr>
+                <TableSkeleton cols={['code', 'date', 'wide', 'medium', 'medium', 'medium', 'actions']} />
               ) : data?.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">Sin tickets registrados.</td></tr>
               ) : data?.map((t: any) => (
