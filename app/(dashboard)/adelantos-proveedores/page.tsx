@@ -31,7 +31,7 @@ export default function AdelantosProveedoresPage() {
 
   useEffect(() => {
     loadProveedores().then(d => setProveedores(d || []))
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   const filters: Record<string, any> = {}

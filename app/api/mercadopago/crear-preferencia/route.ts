@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
     preference = await preferenceClient.create({
       body: {
         items: [{
+          id: `plan-${plan.nombre.toLowerCase()}`,
           title: `Nube Gestión - ${plan.nombre}`,
           unit_price: precioARS,
           quantity: 1,

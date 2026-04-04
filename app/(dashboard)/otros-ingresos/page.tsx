@@ -18,7 +18,7 @@ export default function OtrosIngresosPage() {
   const [fechaHasta, setFechaHasta] = useState('')
   const [cuentas, setCuentas] = useState<{ id: string; nombre: string }[]>([])
 
-  useEffect(() => { getCuentas({ activo: true }).then(d => setCuentas(d || [])) }, [])
+  useEffect(() => { getCuentas({ estado: 'activo' }).then(d => setCuentas(d || [])) }, [])
 
   const filters: Record<string, any> = {}
   if (filtroTipo) filters.tipo = filtroTipo

@@ -38,7 +38,7 @@ export default function MovimientosPage() {
   })
 
   useEffect(() => {
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   function handleSearch(e: React.FormEvent) {

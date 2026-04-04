@@ -28,7 +28,7 @@ export default function AdelantosClientesPage() {
 
   useEffect(() => {
     getClientes({ estado: 'activo' }).then(d => setClientes(d || []))
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   const filters: Record<string, any> = {}
