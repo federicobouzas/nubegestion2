@@ -20,6 +20,7 @@ export default function TallerForm({ initialData, onSubmit, submitLabel = 'Guard
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState<ITallerForm>({
     nombre: initialData?.nombre ?? '',
+    estado: initialData?.estado ?? 'activo',
   })
 
   function setField(k: keyof ITallerForm, v: string) {
@@ -50,18 +51,30 @@ export default function TallerForm({ initialData, onSubmit, submitLabel = 'Guard
   return (
     <>
       <FormErrorModal open={showModal} onClose={() => setShowModal(false)} errors={errors} />
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6 max-w-xl">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6">
         <FormErrorBanner show={Object.keys(errors).length > 0} />
         <div className="bg-white border border-[#E5E4E0] rounded-xl p-5 shadow-sm">
-          <FieldWrapper label="Nombre" required error={errors.nombre}>
-            <input
-              className={inputCls(errors.nombre)}
-              value={form.nombre}
-              onChange={e => setField('nombre', e.target.value)}
-              placeholder="Nombre del taller"
-              autoFocus
-            />
-          </FieldWrapper>
+          <div className="grid grid-cols-2 gap-3">
+            <FieldWrapper label="Nombre" required error={errors.nombre}>
+              <input
+                className={inputCls(errors.nombre)}
+                value={form.nombre}
+                onChange={e => setField('nombre', e.target.value)}
+                placeholder="Nombre del taller"
+                autoFocus
+              />
+            </FieldWrapper>
+            <FieldWrapper label="Estado">
+              <select
+                className={inputCls()}
+                value={form.estado}
+                onChange={e => setField('estado', e.target.value)}
+              >
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
+            </FieldWrapper>
+          </div>
         </div>
         <div className="flex gap-2 justify-end">
           <button

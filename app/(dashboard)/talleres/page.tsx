@@ -62,21 +62,24 @@ export default function TalleresPage() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-[#E5E4E0] bg-[#F9F9F8]">
-                {['Nombre', 'Fecha de Alta', ''].map((h, i) => (
+                {['Nombre', 'Estado', ''].map((h, i) => (
                   <th key={i} className="font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] px-4 py-3 text-left font-medium">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <TableSkeleton cols={['medium','date','actions']} />
+                <TableSkeleton cols={['medium','medium','actions']} />
               ) : data.length === 0 ? (
                 <tr><td colSpan={3} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">No hay talleres.</td></tr>
               ) : data.map((t: any) => (
                 <tr key={t.id} className="border-b border-[#F1F0EE] last:border-0 hover:bg-[#FEF0EA] group transition-colors">
                   <td className="px-4 py-3 text-[12px] text-[#18181B] font-medium">{t.nombre}</td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-[#6B6762]">
-                    {new Date(t.created_at).toLocaleDateString('es-AR')}
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex items-center gap-1 text-[10.5px] font-semibold px-2 py-0.5 rounded-full ${t.estado === 'inactivo' ? 'bg-[#FEE8E8] text-[#7F1D1D]' : 'bg-[#E8F7EF] text-[#1A5C38]'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${t.estado === 'inactivo' ? 'bg-[#EE3232]' : 'bg-[#4EBB7F]'}`} />
+                      {t.estado === 'inactivo' ? 'Inactivo' : 'Activo'}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end">

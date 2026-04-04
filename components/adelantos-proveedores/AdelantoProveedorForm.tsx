@@ -49,7 +49,7 @@ export default function AdelantoProveedorFormComp({
 
   useEffect(() => {
     loadProveedores().then(d => setProveedores(d || []))
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   function setField(k: keyof AdelantoProveedorForm, v: string | number) {

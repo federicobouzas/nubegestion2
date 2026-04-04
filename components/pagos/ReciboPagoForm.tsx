@@ -45,7 +45,7 @@ export default function ReciboPagoFormComp({ onSubmit }: Props) {
 
   useEffect(() => {
     getProveedores({ estado: 'activo' }).then(d => setProveedores(d || []))
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   async function selectProveedor(id: string) {

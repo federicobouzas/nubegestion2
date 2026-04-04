@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Settings2 } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
 import ListHeader from '@/components/shared/ListHeader'
+import TableSkeleton from '@/components/shared/TableSkeleton'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import { useListState } from '@/hooks/useListState'
 import { createClient } from '@/lib/supabase'
@@ -75,7 +76,7 @@ export default function InsumosEnProductosPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">Cargando...</td></tr>
+                <TableSkeleton cols={['wide', 'amount', 'medium', 'medium', 'actions']} />
               ) : data.length === 0 ? (
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-[12px] text-[#A8A49D]">No hay productos.</td></tr>
               ) : data.map((p: any) => (

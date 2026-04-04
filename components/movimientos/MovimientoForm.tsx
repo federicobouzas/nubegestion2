@@ -32,7 +32,7 @@ export default function MovimientoForm({ initialData, onSubmit, submitLabel = 'G
   })
 
   useEffect(() => {
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   function set(k: keyof MovimientoCuentaForm, v: any) {

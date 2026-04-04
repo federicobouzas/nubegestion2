@@ -2,11 +2,13 @@ export interface Taller {
   id: string
   tenant_id: string
   nombre: string
+  estado: 'activo' | 'inactivo'
   created_at: string
 }
 
 export interface TallerForm {
   nombre: string
+  estado: 'activo' | 'inactivo'
 }
 
 export interface Insumo {

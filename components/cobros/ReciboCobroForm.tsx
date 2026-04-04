@@ -71,7 +71,7 @@ export default function ReciboCobroFormComp({ onSubmit }: Props) {
 
   useEffect(() => {
     getClientes({ estado: 'activo' }).then(d => setClientes(d || []))
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   async function selectCliente(id: string) {

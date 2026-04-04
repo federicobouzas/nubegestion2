@@ -44,7 +44,7 @@ export default function AdelantoClienteFormComp({
 
   useEffect(() => {
     getClientes({ estado: 'activo' }).then(d => setClientes(d || []))
-    getCuentas({ activo: true }).then(d => setCuentas(d || []))
+    getCuentas({ estado: 'activo' }).then(d => setCuentas(d || []))
   }, [])
 
   function setField(k: keyof AdelantoClienteForm, v: string | number) {

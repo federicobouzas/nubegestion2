@@ -18,7 +18,7 @@ export default function NuevoProductoPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({ codigo: '', nombre: '', descripcion: '', precio_compra: 0, precio_venta: 0, iva: 21, unidad_medida: 'unidad', stock_actual: 0, stock_minimo: 0, estado: 'activo' })
+  const [form, setForm] = useState({ codigo: '', nombre: '', descripcion: '', precio_compra: 0, iva: 21, unidad_medida: 'unidad', stock_actual: 0, stock_minimo: 0, estado: 'activo' })
   const [listas, setListas] = useState<ListaPrecio[]>([])
   const [precios, setPrecios] = useState<Record<string, string>>({})
 
