@@ -1,10 +1,9 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import Script from 'next/script'
 import { CreditCard, Loader2 } from 'lucide-react'
-import FormErrorModal from '@/components/shared/FormErrorModal'
-import type { FieldErrors } from '@/hooks/useFormValidation'
+import { createClient } from '@/lib/supabase'
 
 declare global {
   interface Window {
@@ -13,43 +12,12 @@ declare global {
   }
 }
 
-// Con iframe: false todos los campos son <input> normales que controlamos nosotros
+// iframe: true — los campos sensibles (cardNumber, CVV) son iframes montados por MP.
+// Los containers necesitan height + overflow:hidden para que el iframe se vea como un input.
+const iframeCls = 'w-full h-[38px] rounded-[8px] border border-[#E5E4E0] bg-white overflow-hidden'
 const inputCls = 'w-full h-[38px] rounded-[8px] border border-[#E5E4E0] bg-white px-3 text-[12.5px] text-[#18181B] placeholder:text-[#A8A49D] focus:outline-none focus:ring-2 focus:ring-[#F2682E]/30 focus:border-[#F2682E] transition-colors'
 const selectCls = 'w-full h-[38px] rounded-[8px] border border-[#E5E4E0] bg-white px-3 text-[12.5px] text-[#18181B] focus:outline-none focus:ring-2 focus:ring-[#F2682E]/30 focus:border-[#F2682E] transition-colors'
 const labelCls = 'block font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] mb-1'
-const fieldErrorCls = 'mt-1 text-[11px] text-red-600'
-
-interface MPCause {
-  cause?: string
-  field?: string
-  message?: string
-}
-
-function parseMPCauses(causes: MPCause[]): FieldErrors {
-  const errors: FieldErrors = {}
-  const seen = new Set<string>()
-  const add = (key: string, msg: string) => {
-    if (!seen.has(key)) { seen.add(key); errors[key] = msg }
-  }
-  for (const c of causes) {
-    const f = c.message ?? c.field ?? c.cause ?? ''
-    if (f.includes('cardNumber'))
-      add('cardNumber', 'Revisá el número de tarjeta.')
-    else if (f.includes('expiration') || f.includes('Month') || f.includes('Year'))
-      add('expiration', 'Revisá la fecha de vencimiento.')
-    else if (f.includes('securityCode'))
-      add('securityCode', 'Revisá el código de seguridad.')
-    else if (f.includes('cardholderName'))
-      add('cardholderName', 'Ingresá el nombre del titular.')
-    else if (f.includes('identification'))
-      add('identification', 'Ingresá tu documento.')
-    else if (f.includes('email'))
-      add('email', 'Ingresá tu email.')
-    else if (c.message)
-      add(f || c.message, c.message)
-  }
-  return errors
-}
 
 interface Props {
   planSlug: string
@@ -58,22 +26,28 @@ interface Props {
 }
 
 export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
+  const router = useRouter()
   const [sdkReady, setSdkReady]   = useState(false)
   const [formReady, setFormReady] = useState(false)
   const [loading, setLoading]     = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [modalOpen, setModalOpen] = useState(false)
+  const [fetching, setFetching]   = useState(false)
   const formInitialized = useRef(false)
-  const cardFormRef = useRef<any>(null)
+  const cardFormRef     = useRef<any>(null)
+  const emailRef        = useRef<string>('')
 
-  // Script ya cargado en navegación client-side (onLoad no vuelve a disparar)
+  // Obtener email del usuario autenticado
   useEffect(() => {
-    if (window.MercadoPago) setSdkReady(true)
+    createClient().auth.getUser().then(({ data }) => {
+      if (data?.user?.email) {
+        emailRef.current = data.user.email
+      }
+    })
   }, [])
 
-  const showErrors = (errors: FieldErrors) => {
-    flushSync(() => { setFieldErrors(errors); setModalOpen(true) })
-  }
+  // El SDK puede ya estar cargado por navegación client-side (onLoad no vuelve a disparar)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.MercadoPago) setSdkReady(true)
+  }, [])
 
   useEffect(() => {
     if (!sdkReady || formInitialized.current) return
@@ -86,66 +60,73 @@ export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
 
     const cardForm = mp.cardForm({
       amount: String(monto),
-      iframe: false,
+      iframe: true,
       form: {
-        id: 'form-mp-checkout',
-        cardNumber:           { id: 'mp-cardNumber',           placeholder: '0000 0000 0000 0000' },
-        expirationDate:       { id: 'mp-expirationDate',       placeholder: 'MM/AA' },
-        securityCode:         { id: 'mp-securityCode',         placeholder: 'CVV' },
-        cardholderName:       { id: 'mp-cardholderName' },
-        cardholderEmail:      { id: 'mp-email' },
-        identificationNumber: { id: 'mp-identificationNumber' },
-        identificationType:   { id: 'mp-identificationType' },
-        issuer:               { id: 'mp-issuer' },
-        installments:         { id: 'mp-installments' },
+        id: 'form-checkout',
+        cardNumber:           { id: 'form-checkout__cardNumber',           placeholder: 'Número de tarjeta' },
+        expirationDate:       { id: 'form-checkout__expirationDate',       placeholder: 'MM/AA' },
+        securityCode:         { id: 'form-checkout__securityCode',         placeholder: 'CVV' },
+        cardholderName:       { id: 'form-checkout__cardholderName',       placeholder: 'Como figura en la tarjeta' },
+        issuer:               { id: 'form-checkout__issuer',               placeholder: 'Banco emisor' },
+        installments:         { id: 'form-checkout__installments',         placeholder: 'Cuotas' },
+        identificationType:   { id: 'form-checkout__identificationType' },
+        identificationNumber: { id: 'form-checkout__identificationNumber', placeholder: 'DNI' },
+        cardholderEmail:      { id: 'form-checkout__cardholderEmail' },
       },
       callbacks: {
         onFormMounted: (error: any) => {
-          if (error) console.warn('[MP] mount error:', error)
-          else setFormReady(true)
+          if (error) {
+            console.warn('[MP] mount error:', error)
+          } else {
+            setFormReady(true)
+            // Pre-cargar email en el campo oculto
+            const el = document.getElementById('form-checkout__cardholderEmail') as HTMLInputElement | null
+            if (el && emailRef.current) el.value = emailRef.current
+            // En dev, auto-completar los inputs normales con datos de prueba
+            if (process.env.NODE_ENV === 'development') {
+              const cardholderName = document.getElementById('form-checkout__cardholderName') as HTMLInputElement | null
+              const identificationNumber = document.getElementById('form-checkout__identificationNumber') as HTMLInputElement | null
+              if (cardholderName) cardholderName.value = 'APRO'
+              if (identificationNumber) identificationNumber.value = '12345678'
+            }
+          }
         },
-        onError: (errors: any) => {
-          const list = Array.isArray(errors) ? errors : [errors]
-          showErrors(parseMPCauses(list as MPCause[]))
+        onFetching: (_resource: string) => {
+          setFetching(true)
+          return () => setFetching(false)
         },
-        onSubmit: (event: any) => {
+        onSubmit: async (event: any) => {
           if (typeof event?.preventDefault === 'function') event.preventDefault()
-          flushSync(() => { setFieldErrors({}); setLoading(true) })
+          setLoading(true)
 
-          const formData = cardFormRef.current.getCardFormData()
+          try {
+            // Asegurar que el email esté pre-cargado antes de tokenizar
+            const emailEl = document.getElementById('form-checkout__cardholderEmail') as HTMLInputElement | null
+            if (emailEl && emailRef.current && !emailEl.value) {
+              emailEl.value = emailRef.current
+            }
 
-          fetch('/api/suscripcion/checkout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              token: formData.token,
-              issuer_id: formData.issuerId,
-              payment_method_id: formData.paymentMethodId,
-              transaction_amount: monto,
-              installments: parseInt(formData.installments) || 1,
-              description: 'Suscripción Nube Gestión',
-              plan: planSlug,
-              payer: {
-                email: formData.cardholderEmail,
-                identification: {
-                  type: formData.identificationType,
-                  number: formData.identificationNumber,
-                },
-              },
-            }),
-          })
-            .then(res => res.json())
-            .then(data => {
-              if (data.causes?.length) {
-                showErrors(parseMPCauses(data.causes as MPCause[]))
-              } else if (data.redirect) {
-                window.location.href = data.redirect
-              } else {
-                showErrors({ general: data.error || 'Ocurrió un error. Intentá de nuevo.' })
-              }
+            const { token, paymentMethodId } = cardFormRef.current.getCardFormData()
+
+            const res = await fetch('/api/mercadopago/pagar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ plan_slug: planSlug, token, paymentMethodId }),
             })
-            .catch(() => showErrors({ general: 'Error de conexión. Intentá de nuevo.' }))
-            .finally(() => flushSync(() => setLoading(false)))
+            const data = await res.json()
+
+            if (data.status === 'approved') {
+              router.push('/suscripcion/aprobado')
+            } else if (data.status === 'rejected') {
+              router.push('/suscripcion/rechazado')
+            } else {
+              router.push('/suscripcion/pendiente')
+            }
+          } catch {
+            router.push('/suscripcion/rechazado')
+          } finally {
+            setLoading(false)
+          }
         },
       },
     })
@@ -159,71 +140,6 @@ export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
     }
   }, [sdkReady])
 
-  // Formateo de campos nativos (MP usa iframe:false, no podemos usar onChange de React)
-  useEffect(() => {
-    if (!formReady) return
-
-    const cardNumberEl = document.getElementById('mp-cardNumber') as HTMLInputElement
-    const securityCodeEl = document.getElementById('mp-securityCode') as HTMLInputElement
-    const docNumberEl = document.getElementById('mp-identificationNumber') as HTMLInputElement
-
-    const isAmex = () => cardNumberEl?.value.replace(/\D/g, '').startsWith('3')
-
-    const handleCardNumber = (e: Event) => {
-      const input = e.target as HTMLInputElement
-      const digits = input.value.replace(/\D/g, '').slice(0, 16)
-      let formatted: string
-
-      if (digits.startsWith('3')) {
-        // Amex: 4-6-5
-        formatted = [digits.slice(0, 4), digits.slice(4, 10), digits.slice(10, 15)]
-          .filter(Boolean).join(' ')
-      } else {
-        // Visa/MC/etc: 4-4-4-4
-        formatted = digits.match(/.{1,4}/g)?.join(' ') ?? ''
-      }
-
-      if (input.value !== formatted) {
-        input.value = formatted
-        input.dispatchEvent(new Event('input', { bubbles: true }))
-      }
-
-      // Actualiza maxLength del CVV según tipo de tarjeta
-      if (securityCodeEl) {
-        securityCodeEl.maxLength = digits.startsWith('3') ? 4 : 3
-      }
-    }
-
-    const handleCVV = (e: Event) => {
-      const input = e.target as HTMLInputElement
-      const max = isAmex() ? 4 : 3
-      const digits = input.value.replace(/\D/g, '').slice(0, max)
-      if (input.value !== digits) {
-        input.value = digits
-        input.dispatchEvent(new Event('input', { bubbles: true }))
-      }
-    }
-
-    const handleDoc = (e: Event) => {
-      const input = e.target as HTMLInputElement
-      const digits = input.value.replace(/\D/g, '').slice(0, 8)
-      if (input.value !== digits) {
-        input.value = digits
-        input.dispatchEvent(new Event('input', { bubbles: true }))
-      }
-    }
-
-    cardNumberEl?.addEventListener('input', handleCardNumber)
-    securityCodeEl?.addEventListener('input', handleCVV)
-    docNumberEl?.addEventListener('input', handleDoc)
-
-    return () => {
-      cardNumberEl?.removeEventListener('input', handleCardNumber)
-      securityCodeEl?.removeEventListener('input', handleCVV)
-      docNumberEl?.removeEventListener('input', handleDoc)
-    }
-  }, [formReady])
-
   return (
     <>
       <Script
@@ -231,95 +147,81 @@ export default function MercadoPagoForm({ planSlug, monto, title }: Props) {
         onLoad={() => setSdkReady(true)}
       />
 
-      <FormErrorModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        errors={fieldErrors}
-      />
-
-      <form id="form-mp-checkout" className="space-y-3" action="javascript:void(0)">
+      <form id="form-checkout" className="space-y-3" action="javascript:void(0)">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#E5E4E0]">
           <CreditCard size={15} className="text-[#F2682E]" />
           <span className="text-[12.5px] font-semibold text-[#18181B]">{title}</span>
         </div>
 
         <div>
-          <label className={labelCls} htmlFor="mp-cardNumber">Número de tarjeta</label>
+          <label className={labelCls}>Número de tarjeta</label>
+          <div id="form-checkout__cardNumber" className={iframeCls} />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Vencimiento</label>
+            <div id="form-checkout__expirationDate" className={iframeCls} />
+          </div>
+          <div>
+            <label className={labelCls}>CVV</label>
+            <div id="form-checkout__securityCode" className={iframeCls} />
+          </div>
+        </div>
+
+        <div>
+          <label className={labelCls} htmlFor="form-checkout__cardholderName">Nombre del titular</label>
           <input
-            id="mp-cardNumber"
+            id="form-checkout__cardholderName"
             type="text"
-            placeholder="0000 0000 0000 0000"
-            maxLength={19}
+            placeholder="Como figura en la tarjeta"
             className={inputCls}
           />
-          {fieldErrors.cardNumber && <p className={fieldErrorCls}>{fieldErrors.cardNumber}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelCls} htmlFor="mp-expirationDate">Vencimiento</label>
-            <input id="mp-expirationDate" type="text" placeholder="MM/AA" className={inputCls} />
-            {fieldErrors.expiration && <p className={fieldErrorCls}>{fieldErrors.expiration}</p>}
+            <label className={labelCls} htmlFor="form-checkout__identificationType">Tipo de doc.</label>
+            <select id="form-checkout__identificationType" className={selectCls} />
           </div>
           <div>
-            <label className={labelCls} htmlFor="mp-securityCode">CVV</label>
+            <label className={labelCls} htmlFor="form-checkout__identificationNumber">Número de doc.</label>
             <input
-              id="mp-securityCode"
-              type="text"
-              placeholder="CVV"
-              maxLength={3}
-              className={inputCls}
-            />
-            {fieldErrors.securityCode && <p className={fieldErrorCls}>{fieldErrors.securityCode}</p>}
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls} htmlFor="mp-cardholderName">Nombre del titular</label>
-          <input id="mp-cardholderName" type="text" placeholder="Como figura en la tarjeta" className={inputCls} />
-          {fieldErrors.cardholderName && <p className={fieldErrorCls}>{fieldErrors.cardholderName}</p>}
-        </div>
-
-        <div>
-          <label className={labelCls} htmlFor="mp-email">Email</label>
-          <input id="mp-email" type="email" placeholder="correo@ejemplo.com" className={inputCls} />
-          {fieldErrors.email && <p className={fieldErrorCls}>{fieldErrors.email}</p>}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls} htmlFor="mp-identificationType">Tipo de doc.</label>
-            <select id="mp-identificationType" className={selectCls} />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="mp-identificationNumber">Número de doc.</label>
-            <input
-              id="mp-identificationNumber"
+              id="form-checkout__identificationNumber"
               type="text"
               placeholder="12345678"
               maxLength={8}
               className={inputCls}
             />
-            {fieldErrors.identification && <p className={fieldErrorCls}>{fieldErrors.identification}</p>}
           </div>
         </div>
 
+        {/* Campos ocultos que MP necesita */}
         <div className="hidden">
-          <select id="mp-issuer" />
-          <select id="mp-installments" />
+          <select id="form-checkout__issuer" />
+          <select id="form-checkout__installments" />
+          <input id="form-checkout__cardholderEmail" type="hidden" />
         </div>
 
         <button
           type="submit"
-          disabled={loading || !formReady}
+          disabled={loading || !formReady || fetching}
           className="w-full flex items-center justify-center gap-2 text-[13px] font-semibold px-4 py-2.5 rounded-[9px] bg-[#F2682E] text-white shadow-[0_3px_12px_rgba(242,104,46,0.30)] hover:bg-[#C94E18] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? <><Loader2 size={14} className="animate-spin" /> Procesando...</> : 'Realizar pago'}
+          {(loading || fetching)
+            ? <><Loader2 size={14} className="animate-spin" /> Procesando...</>
+            : 'Realizar pago'}
         </button>
 
         <p className="text-center text-[10.5px] text-[#A8A49D]">
-          Pago seguro procesado por MercadoPago
+          Pago seguro con encriptación SSL
         </p>
+
+        {process.env.NODE_ENV === 'development' && (
+          <p className="text-center text-[10px] font-mono text-[#A8A49D] bg-[#F9F9F8] border border-[#E5E4E0] rounded-[6px] px-3 py-1.5 leading-relaxed">
+            Dev — tarjeta: 5031 7557 3453 0604 · venc: 11/30 · CVV: 123
+          </p>
+        )}
       </form>
     </>
   )
