@@ -1,6 +1,7 @@
 import { createClient } from './supabase'
 import { getTenantId } from '@/lib/tenant'
 import { checkPlanLimit } from '@/lib/plan-client'
+import { consumirAdelantosCliente } from '@/lib/adelantos-clientes'
 import type { FacturaVentaForm } from '@/types/ventas'
 
 export async function getFacturasVenta(search?: string) {
@@ -148,6 +149,10 @@ export async function createFacturaVenta(form: FacturaVentaForm) {
       }))
     )
   }
+
+  // Consumir adelantos del cliente si los hay
+  const { data: totalFv } = await supabase.rpc('get_total_factura_venta_con_percepciones', { p_factura_id: factura.id })
+  await consumirAdelantosCliente(factura.id, form.cliente_id, tenantId, Number(totalFv ?? 0))
 
   return factura
 }

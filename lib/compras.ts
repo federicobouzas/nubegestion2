@@ -1,6 +1,7 @@
 import { createClient } from './supabase'
 import { getTenantId } from '@/lib/tenant'
 import { checkPlanLimit } from '@/lib/plan-client'
+import { consumirAdelantosProveedor } from '@/lib/adelantos-proveedores'
 import type { FacturaCompraForm } from '@/types/compras'
 
 export async function getFacturasCompra(search?: string) {
@@ -134,6 +135,10 @@ export async function createFacturaCompra(form: FacturaCompraForm) {
       }))
     )
   }
+
+  // Consumir adelantos del proveedor si los hay
+  const { data: totalFc } = await supabase.rpc('get_total_factura_compra_con_percepciones', { p_factura_id: factura.id })
+  await consumirAdelantosProveedor(factura.id, form.proveedor_id, tenantId, Number(totalFc ?? 0))
 
   return factura
 }
