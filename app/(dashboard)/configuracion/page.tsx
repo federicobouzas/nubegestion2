@@ -1,14 +1,22 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Save } from 'lucide-react'
+import { Save, Plus, Check, X, Trash2, UserCheck, UserX } from 'lucide-react'
 import Topbar from '@/components/shared/Topbar'
-import FieldWrapper, { inputCls } from '@/components/shared/FieldWrapper'
+import FieldWrapper, { inputCls, inputSmCls } from '@/components/shared/FieldWrapper'
 import FormErrorModal from '@/components/shared/FormErrorModal'
 import FormErrorBanner from '@/components/shared/FormErrorBanner'
 import { createClient } from '@/lib/supabase'
-import { getTenantId } from '@/lib/tenant'
 
 const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final']
+
+interface UsuarioRow {
+  id: string
+  nombre: string
+  email: string
+  rol: string
+  activo: boolean
+  confirmDelete?: boolean
+}
 
 export default function ConfiguracionPage() {
   const [loading, setLoading] = useState(true)
@@ -17,11 +25,15 @@ export default function ConfiguracionPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showModal, setShowModal] = useState(false)
 
+  const [currentUserId, setCurrentUserId] = useState('')
+  const [currentUserRol, setCurrentUserRol] = useState('')
+
   const [userForm, setUserForm] = useState({
     nombre: '',
     email: '',
     password: '',
     password2: '',
+    rol: '',
   })
 
   const [tenantForm, setTenantForm] = useState({
@@ -39,27 +51,47 @@ export default function ConfiguracionPage() {
     codigo_postal: '',
   })
 
+  const [planInfo, setPlanInfo] = useState<{
+    nombre: string
+    plan_ends_at: string | null
+    facturasMes: number | null
+    usuariosMax: number | null
+  } | null>(null)
+
+  const [usuariosCount, setUsuariosCount] = useState(1)
+  const [usuarios, setUsuarios] = useState<UsuarioRow[]>([])
+  const [addingUser, setAddingUser] = useState(false)
+  const [newUser, setNewUser] = useState({ nombre: '', email: '', password: '', rol: 'usuario' })
+  const [userActionLoading, setUserActionLoading] = useState<string | null>(null)
+  const [addUserError, setAddUserError] = useState('')
+
   useEffect(() => {
     async function load() {
       const supabase = createClient()
-      const TENANT_ID = await getTenantId()
-
       const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
 
-      if (user) {
-        const { data: u } = await supabase
-          .from('usuarios')
-          .select('nombre, email')
-          .eq('id', user.id)
-          .single()
-        if (u) setUserForm(p => ({ ...p, nombre: u.nombre || '', email: u.email || '' }))
-      }
+      setCurrentUserId(user.id)
+
+      const { data: u } = await supabase
+        .from('usuarios')
+        .select('nombre, email, rol, tenant_id')
+        .eq('id', user.id)
+        .single()
+
+      if (!u) { setLoading(false); return }
+
+      setCurrentUserRol(u.rol)
+      setUserForm(p => ({ ...p, nombre: u.nombre || '', email: u.email || '', rol: u.rol || '' }))
+
+      const tenantId = u.tenant_id
 
       const { data: t } = await supabase
         .from('tenants')
         .select('*')
-        .eq('id', TENANT_ID)
+        .eq('id', tenantId)
         .single()
+
       if (t) {
         setTenantForm({
           razon_social: t.razon_social || '',
@@ -75,7 +107,39 @@ export default function ConfiguracionPage() {
           provincia: t.provincia || '',
           codigo_postal: t.codigo_postal || '',
         })
+
+        if (t.plan) {
+          const { data: planDef } = await supabase
+            .from('planes')
+            .select('nombre, facturas_mes, usuarios')
+            .eq('slug', t.plan)
+            .single()
+
+          setPlanInfo({
+            nombre: planDef?.nombre || t.plan,
+            plan_ends_at: t.plan_ends_at || null,
+            facturasMes: planDef?.facturas_mes ?? null,
+            usuariosMax: planDef?.usuarios ?? null,
+          })
+        }
       }
+
+      const { count: totalUsuarios } = await supabase
+        .from('usuarios')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+      setUsuariosCount(Math.max(1, totalUsuarios ?? 1))
+
+      if (u.rol === 'admin') {
+        const { data: us } = await supabase
+          .from('usuarios')
+          .select('id, nombre, email, rol, activo')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: true })
+
+        if (us) setUsuarios(us)
+      }
+
       setLoading(false)
     }
     load()
@@ -102,7 +166,6 @@ export default function ConfiguracionPage() {
     if (userForm.password && userForm.password !== userForm.password2)
       newErrors['password2'] = 'Las contraseñas no coinciden.'
     if (!tenantForm.razon_social.trim()) newErrors['razon_social'] = 'La razón social es obligatoria.'
-    if (!tenantForm.cuit.trim()) newErrors['cuit'] = 'El CUIT es obligatorio.'
     if (!tenantForm.punto_venta || Number(tenantForm.punto_venta) < 1)
       newErrors['punto_venta'] = 'El punto de venta debe ser mayor a 0.'
 
@@ -111,28 +174,33 @@ export default function ConfiguracionPage() {
     setSaving(true)
     try {
       const supabase = createClient()
-      const TENANT_ID = await getTenantId()
       const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('No autenticado')
 
-      // Guardar usuario
+      const { data: u } = await supabase
+        .from('usuarios')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+      if (!u?.tenant_id) throw new Error('Sin tenant')
+
       const { error: userError } = await supabase
         .from('usuarios')
         .update({ nombre: userForm.nombre.trim(), email: userForm.email.trim() })
-        .eq('id', user!.id)
+        .eq('id', user.id)
       if (userError) throw userError
 
-      // Cambiar contraseña si se completó
       if (userForm.password) {
         const { error: passError } = await supabase.auth.updateUser({ password: userForm.password })
         if (passError) throw passError
       }
 
-      // Guardar tenant
       const { error: tenantError } = await supabase
         .from('tenants')
         .update({
           razon_social: tenantForm.razon_social.trim(),
-          cuit: tenantForm.cuit.trim(),
+          cuit: tenantForm.cuit.trim() || null,
           fecha_inicio_actividades: tenantForm.fecha_inicio_actividades || null,
           punto_venta: Number(tenantForm.punto_venta),
           domicilio_fiscal: tenantForm.domicilio_fiscal.trim() || null,
@@ -143,21 +211,100 @@ export default function ConfiguracionPage() {
           localidad: tenantForm.localidad.trim() || null,
           provincia: tenantForm.provincia.trim() || null,
           codigo_postal: tenantForm.codigo_postal.trim() || null,
-          updated_at: new Date().toISOString(),
         })
-        .eq('id', TENANT_ID)
+        .eq('id', u.tenant_id)
       if (tenantError) throw tenantError
 
-      // Limpiar contraseñas
       setUserForm(p => ({ ...p, password: '', password2: '' }))
       setSaved(true)
-    } catch (err: any) {
-      setErrors({ _server: err?.message || 'Error al guardar.' })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar.'
+      setErrors({ _server: msg })
       setShowModal(true)
     } finally {
       setSaving(false)
     }
   }
+
+  async function handleAddUser() {
+    if (!newUser.nombre.trim() || !newUser.email.trim() || !newUser.password.trim()) {
+      setAddUserError('Nombre, email y contraseña son requeridos.')
+      return
+    }
+    setAddUserError('')
+    setUserActionLoading('new')
+    try {
+      const res = await fetch('/api/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: newUser.nombre.trim(), email: newUser.email.trim(), password: newUser.password, rol: newUser.rol }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al crear usuario.')
+
+      setUsuarios(p => [...p, { id: data.id, nombre: newUser.nombre.trim(), email: newUser.email.trim(), rol: newUser.rol, activo: true }])
+      setUsuariosCount(c => c + 1)
+      setNewUser({ nombre: '', email: '', password: '', rol: 'usuario' })
+      setAddingUser(false)
+    } catch (err: unknown) {
+      setAddUserError(err instanceof Error ? err.message : 'Error al crear usuario.')
+    } finally {
+      setUserActionLoading(null)
+    }
+  }
+
+  async function handleToggleUser(id: string, activo: boolean) {
+    setUserActionLoading(id)
+    try {
+      const res = await fetch(`/api/usuarios/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !activo }),
+      })
+      if (!res.ok) throw new Error('Error al actualizar usuario.')
+      setUsuarios(p => p.map(u => u.id === id ? { ...u, activo: !activo } : u))
+    } catch {
+      // silently fail — state stays unchanged
+    } finally {
+      setUserActionLoading(null)
+    }
+  }
+
+  function requestDeleteUser(id: string) {
+    setUsuarios(p => p.map(u => u.id === id ? { ...u, confirmDelete: true } : u))
+  }
+
+  function cancelDeleteUser(id: string) {
+    setUsuarios(p => p.map(u => u.id === id ? { ...u, confirmDelete: false } : u))
+  }
+
+  async function handleDeleteUser(id: string) {
+    setUserActionLoading(id)
+    try {
+      const res = await fetch(`/api/usuarios/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Error al eliminar usuario.')
+      setUsuarios(p => p.filter(u => u.id !== id))
+      setUsuariosCount(c => c - 1)
+    } catch {
+      setUsuarios(p => p.map(u => u.id === id ? { ...u, confirmDelete: false } : u))
+    } finally {
+      setUserActionLoading(null)
+    }
+  }
+
+  function cancelAddUser() {
+    setAddingUser(false)
+    setNewUser({ nombre: '', email: '', password: '', rol: 'usuario' })
+    setAddUserError('')
+  }
+
+  function formatDate(d: string | null) {
+    if (!d) return '—'
+    const [y, m, day] = d.split('T')[0].split('-')
+    return `${day}/${m}/${y}`
+  }
+
+  const canAddUser = planInfo === null || planInfo.usuariosMax === null || usuariosCount < planInfo.usuariosMax
 
   if (loading) return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -177,10 +324,15 @@ export default function ConfiguracionPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-none">
           <FormErrorBanner show={Object.keys(errors).length > 0} />
 
-          {/* Datos Personales */}
+          {/* Sección 1 — Datos Personales */}
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3">
+            <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center justify-between">
               <span className="font-display text-[13.5px] font-bold">Datos Personales</span>
+              {userForm.rol && (
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-[#E8F7EF] text-[#1A5C38]">
+                  {userForm.rol === 'admin' ? 'Administrador' : 'Usuario'}
+                </span>
+              )}
             </div>
             <div className="p-4 grid grid-cols-2 gap-3">
               <FieldWrapper label="Nombre" required error={errors.nombre}>
@@ -198,7 +350,7 @@ export default function ConfiguracionPage() {
             </div>
           </div>
 
-          {/* Datos de la Empresa */}
+          {/* Sección 2 — Datos de la Empresa */}
           <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
             <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3">
               <span className="font-display text-[13.5px] font-bold">Datos de la Empresa</span>
@@ -207,7 +359,7 @@ export default function ConfiguracionPage() {
               <FieldWrapper label="Razón Social" required error={errors.razon_social}>
                 <input className={inputCls(errors.razon_social)} value={tenantForm.razon_social} onChange={e => setT('razon_social', e.target.value)} placeholder="Nombre o Razón Social" />
               </FieldWrapper>
-              <FieldWrapper label="CUIT" required error={errors.cuit}>
+              <FieldWrapper label="CUIT" error={errors.cuit}>
                 <input className={inputCls(errors.cuit)} value={tenantForm.cuit} onChange={e => setT('cuit', e.target.value)} placeholder="20-12345678-9" />
               </FieldWrapper>
               <FieldWrapper label="Domicilio Fiscal">
@@ -245,6 +397,210 @@ export default function ConfiguracionPage() {
             </div>
           </div>
 
+          {/* Sección 3 — Plan (read-only) */}
+          {planInfo && (
+            <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3">
+                <span className="font-display text-[13.5px] font-bold">Plan</span>
+              </div>
+              <div className="p-4 grid grid-cols-4 gap-4">
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-[#A8A49D]">Nombre</span>
+                  <span className="text-[13px] font-semibold text-[#18181B]">{planInfo.nombre}</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-[#A8A49D]">Vencimiento</span>
+                  <span className="text-[13px] font-medium text-[#6B6762]">{formatDate(planInfo.plan_ends_at)}</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-[#A8A49D]">Facturas / mes</span>
+                  <span className="text-[13px] font-medium text-[#6B6762]">{planInfo.facturasMes === null ? 'Ilimitadas' : planInfo.facturasMes}</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-[#A8A49D]">Usuarios</span>
+                  <span className="text-[13px] font-medium text-[#6B6762]">{usuariosCount}/{planInfo.usuariosMax === null ? '∞' : planInfo.usuariosMax}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sección 4 — Usuarios */}
+          {currentUserRol === 'admin' && (
+          <div className="bg-white border border-[#E5E4E0] rounded-xl overflow-hidden shadow-sm mt-4">
+            <div className="bg-[#F9F9F8] border-b border-[#F1F0EE] px-4 py-3 flex items-center justify-between">
+              <span className="font-display text-[13.5px] font-bold">Usuarios</span>
+              <div className="relative group/addbtn">
+                <button
+                  type="button"
+                  disabled={!canAddUser || addingUser}
+                  onClick={() => setAddingUser(true)}
+                  className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 rounded-[7px] bg-[#F2682E] text-white shadow-[0_2px_8px_rgba(242,104,46,0.25)] hover:bg-[#C94E18] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus size={12} strokeWidth={2.2} /> Agregar usuario
+                </button>
+                {!canAddUser && (
+                  <div className="absolute right-0 top-full mt-1.5 z-10 bg-[#1F3247] text-white text-[11px] px-2.5 py-1.5 rounded-lg whitespace-nowrap opacity-0 group-hover/addbtn:opacity-100 transition-opacity pointer-events-none">
+                    Límite de usuarios alcanzado. Actualizá tu plan.
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-[#F9F9F8] border-b border-[#E5E4E0]">
+                    <th className="text-left px-4 py-2.5 font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D]">Nombre</th>
+                    <th className="text-left px-4 py-2.5 font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D]">Email</th>
+                    <th className="text-left px-4 py-2.5 font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D]">Rol</th>
+                    <th className="text-left px-4 py-2.5 font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D]">Estado</th>
+                    <th className="px-4 py-2.5 font-mono text-[9.5px] tracking-[0.12em] uppercase text-[#A8A49D] text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usuarios.map(u => (
+                    <tr key={u.id} className="border-b border-[#E5E4E0] last:border-0 hover:bg-[#FEF0EA] group transition-colors">
+                      <td className="px-4 py-2.5 text-[12px] text-[#6B6762]">{u.nombre}</td>
+                      <td className="px-4 py-2.5 text-[12px] text-[#6B6762] font-mono">{u.email}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#F1F0EE] text-[#6B6762]">
+                          {u.rol === 'admin' ? 'Administrador' : 'Usuario'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                          u.activo ? 'bg-[#E8F7EF] text-[#1A5C38]' : 'bg-[#FEE8E8] text-[#7F1D1D]'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${u.activo ? 'bg-[#4EBB7F]' : 'bg-[#EE3232]'}`} />
+                          {u.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {u.confirmDelete ? (
+                          <div className="flex items-center gap-2 justify-end">
+                            <span className="text-[11px] text-[#7F1D1D] font-medium">¿Confirmar eliminación?</span>
+                            <button
+                              type="button"
+                              disabled={userActionLoading === u.id}
+                              onClick={() => handleDeleteUser(u.id)}
+                              className="text-[11px] font-semibold px-2.5 py-1 rounded-[6px] bg-[#EE3232] text-white hover:bg-[#C62020] transition-colors disabled:opacity-50"
+                            >
+                              Eliminar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => cancelDeleteUser(u.id)}
+                              className="text-[11px] font-semibold px-2.5 py-1 rounded-[6px] border border-[#E5E4E0] bg-white text-[#6B6762] hover:border-[#2B445A] transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                            {u.id !== currentUserId && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={userActionLoading === u.id}
+                                  onClick={() => handleToggleUser(u.id, u.activo)}
+                                  title={u.activo ? 'Desactivar' : 'Activar'}
+                                  className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#2B445A] hover:text-[#2B445A] transition-colors disabled:opacity-50"
+                                >
+                                  {u.activo ? <UserX size={13} strokeWidth={2} /> : <UserCheck size={13} strokeWidth={2} />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => requestDeleteUser(u.id)}
+                                  title="Eliminar"
+                                  className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#EE3232] hover:text-[#EE3232] transition-colors"
+                                >
+                                  <Trash2 size={13} strokeWidth={2} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {addingUser && (
+                    <tr className="border-b border-[#E5E4E0] last:border-0 bg-[#FAFAF9]">
+                      <td className="px-3 py-2">
+                        <input
+                          className={inputSmCls()}
+                          placeholder="Nombre"
+                          value={newUser.nombre}
+                          onChange={e => setNewUser(p => ({ ...p, nombre: e.target.value }))}
+                          autoFocus
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          className={inputSmCls()}
+                          type="email"
+                          placeholder="Email"
+                          value={newUser.email}
+                          onChange={e => setNewUser(p => ({ ...p, email: e.target.value }))}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <select
+                          className={inputSmCls()}
+                          value={newUser.rol}
+                          onChange={e => setNewUser(p => ({ ...p, rol: e.target.value }))}
+                        >
+                          <option value="usuario">Usuario</option>
+                          <option value="admin">Administrador</option>
+                        </select>
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          className={inputSmCls()}
+                          type="password"
+                          placeholder="Contraseña"
+                          value={newUser.password}
+                          onChange={e => setNewUser(p => ({ ...p, password: e.target.value }))}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-col gap-1 items-end">
+                          {addUserError && <span className="text-[10px] text-[#EE3232] font-medium text-right">{addUserError}</span>}
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              disabled={userActionLoading === 'new'}
+                              onClick={handleAddUser}
+                              className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#4EBB7F] hover:border-[#4EBB7F] transition-colors disabled:opacity-50"
+                            >
+                              <Check size={13} strokeWidth={2.2} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelAddUser}
+                              className="w-7 h-7 rounded-[6px] border border-[#E5E4E0] bg-white flex items-center justify-center text-[#6B6762] hover:border-[#EE3232] hover:text-[#EE3232] transition-colors"
+                            >
+                              <X size={13} strokeWidth={2} />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+
+                  {usuarios.length === 0 && !addingUser && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-[12px] text-[#A8A49D]">
+                        No hay otros usuarios en este tenant.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          )}
+
+          {/* Botón guardar */}
           <div className="flex items-center gap-3 justify-end">
             {saved && <span className="text-[12px] font-semibold text-[#4EBB7F]">✓ Cambios guardados</span>}
             <button type="submit" disabled={saving} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-2 rounded-[9px] bg-[#F2682E] text-white shadow-[0_3px_12px_rgba(242,104,46,0.30)] hover:bg-[#C94E18] transition-colors disabled:opacity-50">

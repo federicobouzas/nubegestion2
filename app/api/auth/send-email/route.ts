@@ -26,20 +26,21 @@ export async function POST(req: NextRequest) {
   const nombre: string = body.user?.user_metadata?.nombre || email.split('@')[0]
   const tokenHash: string = body.email_data?.token_hash ?? ''
 
-  if (!email || !tokenHash || !['confirm', 'reset'].includes(type)) {
+  if (!email || !tokenHash || !['confirm', 'recovery'].includes(type)) {
     return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 })
   }
 
-  const tokenUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify?token_hash=${tokenHash}&type=${type}`
+  const confirmUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify?token_hash=${tokenHash}&type=signup&redirect_to=${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`
+  const recoveryUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify?token_hash=${tokenHash}&type=recovery&redirect_to=${process.env.NEXT_PUBLIC_SITE_URL}/nueva-contrasena`
 
   try {
     if (type === 'confirm') {
-      const html = getConfirmacionEmailEmail({ nombre, confirmation_url: tokenUrl })
+      const html = getConfirmacionEmailEmail({ nombre, confirmation_url: confirmUrl })
       await sendEmail(email, 'Confirmá tu email — Nube Gestión', html)
     } else {
-      const html = getRecuperoPasswordEmail({ nombre, reset_url: tokenUrl })
+      const html = getRecuperoPasswordEmail({ nombre, reset_url: recoveryUrl })
       await sendEmail(email, 'Recuperá tu contraseña — Nube Gestión', html)
-    }
+    }    
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     console.error('[api/auth/send-email] Error:', err)

@@ -27,6 +27,8 @@ export async function proxy(request: NextRequest) {
 
   const isAuth = pathname.startsWith('/login') ||
     pathname.startsWith('/registro') ||
+    pathname.startsWith('/recuperar-contrasena') ||
+    pathname.startsWith('/nueva-contrasena') ||
     pathname === '/'
 
   if (!user && !isAuth) {

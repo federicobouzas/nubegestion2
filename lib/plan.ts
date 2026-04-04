@@ -38,6 +38,33 @@ export function getPlanLimits(plan: Plan) {
   return FALLBACK_LIMITS[plan]
 }
 
+export async function getPlanDef(slug: Plan): Promise<Pick<PlanDef, 'nombre' | 'facturasMes' | 'usuarios' | 'features'>> {
+  try {
+    const supabase = await createServerSupabase()
+    const { data } = await supabase
+      .from('planes')
+      .select('nombre, facturas_mes, usuarios, features')
+      .eq('slug', slug)
+      .single()
+
+    if (!data) throw new Error('not found')
+
+    return {
+      nombre: data.nombre,
+      facturasMes: data.facturas_mes ?? null,
+      usuarios: data.usuarios ?? null,
+      features: Array.isArray(data.features) ? data.features : [],
+    }
+  } catch {
+    return {
+      nombre: FALLBACK_NOMBRE[slug] ?? slug,
+      facturasMes: FALLBACK_LIMITS[slug]?.facturasMes ?? null,
+      usuarios: FALLBACK_LIMITS[slug]?.usuarios ?? null,
+      features: [],
+    }
+  }
+}
+
 export async function getPlanes(): Promise<PlanDef[]> {
   try {
     const supabase = await createServerSupabase()
